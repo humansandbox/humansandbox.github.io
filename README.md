@@ -1,6 +1,13 @@
 # forum-machina
 
-実験結果と論考の公開アーカイブ。GitHub Pages で配信する静的サイト。
+Measured economics of AI-agent software testing — a primary-evidence archive (static site for GitHub Pages).
 
-- 収録物は選別のうえ個別に配置する(このリポジトリに置かれたものだけが公開物)
-- サイト: index.html が目次
+- `index.html` — landing page and site map (English)
+- `at_cost_bench.html` — AT COST BENCH: viewer over measured A/B runs (RGR branch-grained vs Direct-to-GREEN)
+- `data/cost_data.js` — static snapshot of the evidence records (`window.COST_DATA`); regenerate from the
+  evidence database when new runs land
+- `css/site.css` — shared styles (StrictDev-derived base colors)
+- `sitemap.xml` — update the base URL if the repository/owner changes
+
+Fully static: pages load bundled data via a script tag, so they work from `file://` and on GitHub Pages
+without any backend. Only files deliberately placed here are published.

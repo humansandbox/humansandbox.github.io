@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AT COST BENCH — forum machina</title>
+    <meta name="description" content="AT COST BENCH: measured A/B cost comparison of branch-grained RGR (test-first) versus direct-to-GREEN implementation by LLM coding agents, with full turn ledgers, coverage and mutation scores.">
+    <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+    <div class="hamburger" id="hamburger">&#9776;</div>
+    <nav class="sidebar" id="sidebar">
+        <ul>
+            <li><a href="index.html" class="logo">forum machina</a></li>
+            <li><a href="#" class="section-label">Main</a>
+                <ul>
+                    <li><a href="index.html">Home / Site Map</a></li>
+                    <li><a href="at_cost_bench.html"><span class="dot-green">&#9679;</span>AT COST BENCH</a></li>
+                    <li><a href="https://brickjpn.blob.core.windows.net/strictdev/COST_OF_TDD_RGR.html">COST OF TDD/RGR paper<span class="ext">JA &#8599;</span></a></li>
+                    <li><a href="https://brickjpn.blob.core.windows.net/strictdev/GRAND_INQ_COMMUNITY.html">GRAND INQ Community<span class="ext">JA &#8599;</span></a></li>
+                </ul>
+            </li>
+        </ul>
+    </nav>
+
+    <main>
+        <div class="header-section">
+            <span class="header-title">AT COST BENCH</span>
+            <div class="header-sub">
+                Measured A/B runs: <b>RGR (branch-grained)</b> vs <b>Direct-to-GREEN</b> on identical specifications.
+                Effective tokens = output + novel input + 0.1 &#215; cached reads (same definition as the paper).
+            </div>
+        </div>
+
+        <div class="note-box">
+            Static snapshot of the evidence database (<span id="snapshotInfo"></span>).
+            Task specifications and some annotations are in Japanese &#8212; primary data is preserved as recorded.
+        </div>
+
+        <div class="seq-tabs" id="seqTabs"></div>
+
+        <div id="content"></div>
+    </main>
+
+    <footer>forum machina &#8212; AT COST BENCH (static snapshot viewer)</footer>
+
+    <script src="data/cost_data.js"></script>
+    <script>
+    (function () {
+        document.getElementById('hamburger').addEventListener('click', function () {
+            document.getElementById('sidebar').classList.toggle('active');
+        });
+
+        var DATA = window.COST_DATA || { records: [] };
+        var ARM_LABEL = { RGR_BRANCH: 'RGR (branch-grained)', RGR: 'RGR (function-grained)', DIRECT: 'Direct-to-GREEN' };
+        var ARM_ORDER = ['RGR_BRANCH', 'RGR', 'DIRECT'];
+
+        document.getElementById('snapshotInfo').textContent =
+            'record ' + (DATA.recordId || '').trim() + ', captured ' + (DATA.snapshotAt || '?');
+
+        function esc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        function fmtInt(v) {
+            if (v == null || isNaN(v)) return '-';
+            return Number(v).toLocaleString('en-US');
+        }
+        function fmtMs(ms) {
+            if (ms == null || isNaN(ms)) return '-';
+            var s = ms / 1000;
+            if (s < 90) return s.toFixed(1) + ' s';
+            var m = Math.floor(s / 60);
+            return m + ' m ' + Math.round(s - m * 60) + ' s';
+        }
+        function fmtPct01(v) {
+            if (v == null || isNaN(v)) return '-';
+            return (v * 100).toFixed(1) + '%';
+        }
+        function ratioText(a, b) {
+            if (a == null || b == null || !b || isNaN(a) || isNaN(b)) return '';
+            return '×' + (a / b).toFixed(2);
+        }
+        function g(obj, path) {
+            var cur = obj;
+            for (var i = 0; i < path.length; i++) {
+                if (cur == null) return null;
+                cur = cur[path[i]];
+            }
+            return cur;
+        }
+
+        function armsOf(rec) {
+            var arms = g(rec, ['cost', 'arms']) || {};
+            var names = ARM_ORDER.filter(function (n) { return arms[n]; });
+            Object.keys(arms).forEach(function (n) { if (names.indexOf(n) < 0) names.push(n); });
+            return names;
+        }
+
+        function metricRow(label, arms, names, opts) {
+            // opts: {value(arm), text(arm), ratio:boolean, hl:boolean}
+            var tds = '';
+            names.forEach(function (n) {
+                var cls = (n === 'DIRECT' ? 'col-direct' : 'col-rgr') + (opts.num ? ' num' : '');
+                tds += '<td class="' + cls + '">' + opts.text(arms[n], n) + '</td>';
+            });
+            var ratio = '';
+            if (opts.ratio && names.length >= 2) {
+                var first = opts.value(arms[names[0]]);
+                var last = opts.value(arms['DIRECT'] || arms[names[names.length - 1]]);
+                ratio = ratioText(first, last);
+            }
+            var hl = opts.hl ? ' hl' : '';
+            return '<tr><th>' + label + '</th>' + tds +
+                '<td class="col-ratio' + hl + '">' + ratio + '</td></tr>';
+        }
+
+        function eventText(a) {
+            var ev = g(a, ['testRunEvents']) || {};
+            return 'planned RED ' + fmtInt(ev.plannedRed) + ' / accidental RED ' + fmtInt(ev.accidentalRed) +
+                   ' / GREEN ' + fmtInt(ev.green) + ' / vacuous RED ' + fmtInt(ev.vacuousRed);
+        }
+
+        function memberSummary(a) {
+            var ms = g(a, ['memberResults']) || [];
+            if (!ms.length) return '-';
+            var green = ms.filter(function (m) { return m.status === 'GREEN'; }).length;
+            return 'GREEN ' + green + ' / other ' + (ms.length - green) + ' (of ' + ms.length + ')';
+        }
+
+        function memberTable(a) {
+            var ms = g(a, ['memberResults']) || [];
+            if (!ms.length) return '<p>-</p>';
+            var rows = ms.map(function (m) {
+                var cls = m.status === 'GREEN' ? 'status-green' : 'status-other';
+                return '<tr><td>' + esc(m.label) + '</td><td class="' + cls + '">' + esc(m.status) +
+                    '</td><td class="num">' + fmtInt(m.turns) + '</td><td class="num">' + fmtInt(m.effTokens) +
+                    '</td><td>' + esc(m.note || '') + '</td></tr>';
+            }).join('');
+            return '<table class="members"><thead><tr><th>Member</th><th>Status</th><th>Turns</th><th>Eff. tokens</th><th>Note</th></tr></thead><tbody>' +
+                rows + '</tbody></table>';
+        }
+
+        function render(rec) {
+            var cost = rec.cost || {};
+            var meta = cost.meta || {};
+            var cmp = cost.comparison || {};
+            var arms = cost.arms || {};
+            var names = armsOf(rec);
+            var html = '';
+
+            // --- banner ---
+            var banner = [];
+            if (cmp.effectiveTokenReductionPct != null) banner.push(['Effective-token reduction (Direct vs RGR)', cmp.effectiveTokenReductionPct + '%']);
+            if (cmp.wallClockReductionPct != null) banner.push(['Wall-clock reduction', cmp.wallClockReductionPct + '%']);
+            if (cmp.branchVsDirectEffectiveTokenRatio != null) banner.push(['Token ratio (RGR &#247; Direct)', '×' + cmp.branchVsDirectEffectiveTokenRatio]);
+            if (cmp.spikeStratum) banner.push(['Stratum', esc(cmp.spikeStratum)]);
+            if (banner.length) {
+                html += '<div class="reduction-banner">' + banner.map(function (b) {
+                    return '<div><div class="metric-label">' + b[0] + '</div><div class="metric-value">' + b[1] + '</div></div>';
+                }).join('') + '</div>';
+            }
+            if (cmp.spikeStratumNote) {
+                html += '<div class="note-box">' + esc(cmp.spikeStratumNote) + '</div>';
+            }
+
+            // --- comparison table ---
+            var head = '<tr><th style="min-width:150px;">Metric</th>' + names.map(function (n) {
+                return '<th class="' + (n === 'DIRECT' ? 'col-direct' : 'col-rgr') + '" style="min-width:150px;">' + (ARM_LABEL[n] || n) + '</th>';
+            }).join('') + '<th style="min-width:70px;">Ratio</th></tr>';
+
+            var rows = '';
+            rows += metricRow('Success', arms, names, {
+                text: function (a) { return a && a.success ? 'true' : 'false'; },
+                value: function () { return null; }, ratio: false
+            });
+            rows += metricRow('Turns (API round-trips)', arms, names, {
+                num: true,
+                text: function (a) { return fmtInt(g(a, ['turns'])); },
+                value: function (a) { return g(a, ['turns']); }, ratio: true
+            });
+            rows += metricRow('Effective tokens', arms, names, {
+                num: true, hl: true,
+                text: function (a) { return fmtInt(g(a, ['tokens', 'effective'])); },
+                value: function (a) { return g(a, ['tokens', 'effective']); }, ratio: true
+            });
+            rows += metricRow('&#9500; Input tokens', arms, names, {
+                num: true,
+                text: function (a) { return fmtInt(g(a, ['tokens', 'input'])); },
+                value: function () { return null; }, ratio: false
+            });
+            rows += metricRow('&#9492; Output tokens', arms, names, {
+                num: true,
+                text: function (a) { return fmtInt(g(a, ['tokens', 'output'])); },
+                value: function () { return null; }, ratio: false
+            });
+            rows += metricRow('Wall clock', arms, names, {
+                num: true, hl: true,
+                text: function (a) {
+                    var base = fmtMs(g(a, ['wallClockMs']));
+                    var withStr = g(a, ['wallClockMsWithStryker']);
+                    return withStr ? base + '<br><span style="color:#6c757d;font-size:0.8em;">incl. Stryker: ' + fmtMs(withStr) + '</span>' : base;
+                },
+                value: function (a) { return g(a, ['wallClockMs']); }, ratio: true
+            });
+            rows += metricRow('Test-run events', arms, names, {
+                text: function (a) { return eventText(a); },
+                value: function (a) { return g(a, ['testRunEvents', 'total']); }, ratio: true
+            });
+            rows += metricRow('Oracle-adjudication turns', arms, names, {
+                num: true,
+                text: function (a) { return fmtInt(g(a, ['testAdjudication', 'turns'])); },
+                value: function () { return null; }, ratio: false
+            });
+            rows += metricRow('xUnit tests', arms, names, {
+                text: function (a) {
+                    var x = g(a, ['xunit']) || {};
+                    return fmtInt(x.passed) + ' / ' + fmtInt(x.total) + ' passed';
+                },
+                value: function () { return null; }, ratio: false
+            });
+            rows += metricRow('C1 line coverage', arms, names, {
+                text: function (a) { return fmtPct01(g(a, ['xunit', 'coverageLineRate'])); },
+                value: function () { return null; }, ratio: false
+            });
+            rows += metricRow('Mutation (Stryker)', arms, names, {
+                text: function (a) {
+                    var s = g(a, ['stryker']) || {};
+                    if (!s.executed) return '-';
+                    return fmtPct01(s.mutationScore) + ' (killed ' + fmtInt(s.killed) + ' / survived ' + fmtInt(s.survived) + ' / total ' + fmtInt(s.totalMutants) + ')';
+                },
+                value: function () { return null; }, ratio: false
+            });
+            rows += metricRow('Generated LOC', arms, names, {
+                text: function (a) {
+                    var l = g(a, ['loc']) || {};
+                    return 'prod ' + fmtInt(l.production) + ' / test ' + fmtInt(l.test);
+                },
+                value: function () { return null; }, ratio: false
+            });
+            rows += metricRow('Members', arms, names, {
+                text: function (a) { return memberSummary(a); },
+                value: function () { return null; }, ratio: false
+            });
+
+            html += '<div class="section-card"><div class="section-title"><span class="accent-bar"></span>Comparison &#8212; SEQ ' +
+                rec.seq + (rec.roughType ? ' <span style="font-weight:400;color:#6c757d;font-size:0.85rem;">(' + esc(rec.roughType) + ')</span>' : '') +
+                '</div><div style="overflow-x:auto;"><table class="compare"><thead>' + head + '</thead><tbody>' + rows + '</tbody></table></div></div>';
+
+            // --- per-arm member details ---
+            html += '<div class="section-card"><div class="section-title"><span class="accent-bar"></span>Per-member results</div>';
+            names.forEach(function (n) {
+                html += '<details><summary>' + (ARM_LABEL[n] || n) + '</summary><div style="padding:8px 12px;">' + memberTable(arms[n]) + '</div></details>';
+            });
+            html += '</div>';
+
+            // --- adjudication notes ---
+            var adjNotes = [];
+            names.forEach(function (n) {
+                (g(arms[n], ['testAdjudication', 'notes']) || []).forEach(function (t) { adjNotes.push('[' + (ARM_LABEL[n] || n) + '] ' + t); });
+            });
+            if (adjNotes.length) {
+                html += '<div class="section-card"><div class="section-title"><span class="accent-bar"></span>Oracle-adjudication notes</div><ul>' +
+                    adjNotes.map(function (t) { return '<li style="font-size:0.88rem;">' + esc(t) + '</li>'; }).join('') + '</ul></div>';
+            }
+
+            // --- spec & code ---
+            html += '<div class="section-card"><div class="section-title"><span class="accent-bar"></span>Task specification &amp; generated code</div>';
+            html += '<details><summary>Task specification (Japanese)</summary><pre class="plain">' + esc(rec.spec) + '</pre></details>';
+            names.forEach(function (n) {
+                var a = arms[n] || {};
+                if (a.productionCode) html += '<details><summary>' + (ARM_LABEL[n] || n) + ' &#8212; production code</summary><pre>' + esc(a.productionCode) + '</pre></details>';
+                if (a.testCode) html += '<details><summary>' + (ARM_LABEL[n] || n) + ' &#8212; test code</summary><pre>' + esc(a.testCode) + '</pre></details>';
+            });
+            html += '</div>';
+
+            // --- meta ---
+            var metaKeys = ['model', 'generatedAt', 'memberCountUsed', 'memberCountTotal', 'memberTokenBudget',
+                            'memberTokenBudgetMode', 'branchCycleTokenBudget', 'rgrProtocol', 'contextPolicy',
+                            'effectiveTokenFormula', 'mutationPolicy', 'harness', 'harnessGitCommit'];
+            var metaHtml = metaKeys.filter(function (k) { return meta[k] != null; }).map(function (k) {
+                return '<div><span class="k">' + k + ':</span> ' + esc(String(meta[k]).slice(0, 300)) + '</div>';
+            }).join('');
+            if (metaHtml) {
+                html += '<div class="section-card"><div class="section-title"><span class="accent-bar"></span>Run metadata</div><div class="meta-grid">' + metaHtml + '</div></div>';
+            }
+
+            document.getElementById('content').innerHTML = html;
+        }
+
+        // --- tabs ---
+        var tabs = document.getElementById('seqTabs');
+        var records = DATA.records || [];
+        if (!records.length) {
+            document.getElementById('content').innerHTML = '<div class="note-box">No data bundled. Regenerate data/cost_data.js.</div>';
+            return;
+        }
+        var current = null;
+        function select(seq) {
+            current = seq;
+            Array.prototype.forEach.call(tabs.children, function (b) {
+                b.classList.toggle('active', Number(b.dataset.seq) === seq);
+            });
+            var rec = records.filter(function (r) { return r.seq === seq; })[0];
+            if (rec) render(rec);
+            if (history.replaceState) history.replaceState(null, '', '#seq' + seq);
+        }
+        records.forEach(function (r) {
+            var b = document.createElement('button');
+            b.textContent = 'SEQ ' + r.seq;
+            b.dataset.seq = r.seq;
+            b.addEventListener('click', function () { select(r.seq); });
+            tabs.appendChild(b);
+        });
+        var initial = records[records.length - 1].seq;
+        var m = location.hash.match(/^#seq(\d+)$/);
+        if (m && records.some(function (r) { return r.seq === Number(m[1]); })) initial = Number(m[1]);
+        select(initial);
+    })();
+    </script>
+</body>
+</html>

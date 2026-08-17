@@ -1,77 +1,97 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>forum machina</title>
-    <style>
-        :root { color-scheme: light; }
-        body {
-            margin: 0;
-            background: #ffffff;
-            color: #212529;
-            font-family: "Segoe UI", Meiryo, sans-serif;
-            line-height: 1.7;
-        }
-        header {
-            background: #212529;
-            color: #ffffff;
-            padding: 28px 24px 22px;
-        }
-        header h1 {
-            margin: 0;
-            font-size: 1.6rem;
-            letter-spacing: 0.04em;
-        }
-        header h1 .accent { color: #2f9e44; }
-        header p {
-            margin: 8px 0 0;
-            color: #adb5bd;
-            font-size: 0.9rem;
-        }
-        main {
-            max-width: 860px;
-            margin: 0 auto;
-            padding: 28px 24px 60px;
-        }
-        h2 {
-            font-size: 1.1rem;
-            border-left: 6px solid #2f9e44;
-            padding-left: 10px;
-            margin: 30px 0 12px;
-        }
-        ul.pub-list { padding-left: 22px; }
-        ul.pub-list li { margin: 6px 0; }
-        .empty {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            padding: 14px 16px;
-            color: #6c757d;
-            font-size: 0.92rem;
-        }
-        footer {
-            max-width: 860px;
-            margin: 0 auto;
-            padding: 0 24px 40px;
-            color: #6c757d;
-            font-size: 0.8rem;
-            border-top: 1px solid #dee2e6;
-            padding-top: 14px;
-        }
-        a { color: #1c7ed6; }
-    </style>
+    <meta name="description" content="forum machina — measured economics of AI-agent software testing. Primary-evidence archive of A/B cost measurements: branch-grained RGR (test-first discipline) versus direct-to-GREEN implementation by LLM coding agents.">
+    <link rel="stylesheet" href="css/site.css">
 </head>
 <body>
-    <header>
-        <h1>forum <span class="accent">machina</span></h1>
-        <p>実験結果と論考の公開アーカイブ</p>
-    </header>
+    <div class="hamburger" id="hamburger">&#9776;</div>
+    <nav class="sidebar" id="sidebar">
+        <ul>
+            <li><a href="index.html" class="logo">forum machina</a></li>
+            <li><a href="#" class="section-label">Main</a>
+                <ul>
+                    <li><a href="index.html">Home / Site Map</a></li>
+                    <li><a href="at_cost_bench.html"><span class="dot-green">&#9679;</span>AT COST BENCH</a></li>
+                    <li><a href="https://brickjpn.blob.core.windows.net/strictdev/COST_OF_TDD_RGR.html">COST OF TDD/RGR paper<span class="ext">JA &#8599;</span></a></li>
+                    <li><a href="https://brickjpn.blob.core.windows.net/strictdev/GRAND_INQ_COMMUNITY.html">GRAND INQ Community<span class="ext">JA &#8599;</span></a></li>
+                </ul>
+            </li>
+        </ul>
+    </nav>
+
     <main>
-        <h2>公開物</h2>
-        <div class="empty">準備中。実験結果・論考を順次ここに掲載する。</div>
+        <div class="header-section">
+            <span class="header-title">forum machina</span>
+            <div class="header-sub">Measured economics of AI-agent software testing — a primary-evidence archive.</div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-title"><span class="accent-bar"></span>What this site is</div>
+            <p>
+                This site publishes <b>measured A/B cost data</b> for a question most of the industry argues about
+                with opinions: what does test-first ceremony actually cost when the implementer is an LLM coding agent?
+                Two arms are run against identical task specifications under equalized verification obligations
+                (100% line coverage, mutation testing):
+            </p>
+            <ul>
+                <li><b>RGR (branch-grained)</b> — textbook red&#8594;green discipline, one failing test per design decision, enforced by protocol</li>
+                <li><b>Direct-to-GREEN</b> — implementation and tests generated together, incidental failures repaired</li>
+            </ul>
+            <p>
+                Every run records its full turn ledger: effective tokens, wall clock, test-run events
+                (planned red / accidental red / green / vacuous red), oracle-adjudication turns, coverage,
+                mutation scores, and per-member outcomes. The viewer reads a static snapshot of the evidence
+                database &#8212; no backend required.
+            </p>
+            <p class="header-sub">UI is in English. Task specifications and some run annotations are in Japanese (primary data is preserved as recorded).</p>
+        </div>
+
+        <div class="section-card">
+            <div class="section-title"><span class="accent-bar"></span>Site map</div>
+            <ul class="map-list">
+                <li>
+                    <div class="name"><a href="index.html">Home</a><span class="badge-live">LIVE</span></div>
+                    <div class="path">/index.html</div>
+                    <div class="desc">This page. Orientation and site map.</div>
+                </li>
+                <li>
+                    <div class="name"><a href="at_cost_bench.html">AT COST BENCH</a><span class="badge-live">LIVE</span></div>
+                    <div class="path">/at_cost_bench.html</div>
+                    <div class="desc">
+                        Interactive viewer over measured runs (8 recorded sequences): reduction summary,
+                        arm-by-arm comparison table, per-member results, task specification, and generated code
+                        for both arms. Fully static &#8212; data ships with the site.
+                    </div>
+                </li>
+                <li>
+                    <div class="name"><a href="https://brickjpn.blob.core.windows.net/strictdev/COST_OF_TDD_RGR.html">COST OF TDD/RGR &#8212; the paper</a><span class="badge-ext">EXTERNAL / JA</span></div>
+                    <div class="path">brickjpn.blob.core.windows.net/strictdev/COST_OF_TDD_RGR.html</div>
+                    <div class="desc">
+                        The living paper: a 20-condition Fermi cost grid (5 code strata &#215; red-evidence regime &#215; mutation testing),
+                        calibrated by the measurements shown in AT COST BENCH.
+                    </div>
+                </li>
+                <li>
+                    <div class="name"><a href="https://brickjpn.blob.core.windows.net/strictdev/GRAND_INQ_COMMUNITY.html">GRAND INQ Community</a><span class="badge-ext">EXTERNAL / JA</span></div>
+                    <div class="path">brickjpn.blob.core.windows.net/strictdev/GRAND_INQ_COMMUNITY.html</div>
+                    <div class="desc">Discussion board where the arguments behind these measurements are developed.</div>
+                </li>
+            </ul>
+        </div>
     </main>
+
     <footer>
-        forum-machina
+        forum machina &#8212; static site. The Azure-hosted StrictDev pages remain available in parallel.
     </footer>
+
+    <script>
+        document.getElementById('hamburger').addEventListener('click', function () {
+            document.getElementById('sidebar').classList.toggle('active');
+        });
+    </script>
 </body>
 </html>
