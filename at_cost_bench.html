@@ -292,7 +292,12 @@
         var tabs = document.getElementById('seqTabs');
         var records = DATA.records || [];
         if (!records.length) {
-            document.getElementById('content').innerHTML = '<div class="note-box">No data bundled. Regenerate data/cost_data.js.</div>';
+            document.getElementById('content').innerHTML =
+                '<div class="note-box"><b>Data script did not load.</b> ' +
+                'If you opened this page via <code>file://</code>, your browser may be blocking local script files ' +
+                '(data/cost_data.js). Either open the hosted site, or serve this folder locally:' +
+                '<pre style="background:#212529;color:#7ddf8f;padding:8px 12px;margin:8px 0 0;">python -m http.server 8123</pre>' +
+                'then visit <code>http://localhost:8123/at_cost_bench.html</code></div>';
             return;
         }
         var current = null;
@@ -303,7 +308,9 @@
             });
             var rec = records.filter(function (r) { return r.seq === seq; })[0];
             if (rec) render(rec);
-            if (history.replaceState) history.replaceState(null, '', '#seq' + seq);
+            try {
+                if (history.replaceState) history.replaceState(null, '', '#seq' + seq);
+            } catch (e) { /* file:// では replaceState が拒否されるブラウザがある */ }
         }
         records.forEach(function (r) {
             var b = document.createElement('button');
