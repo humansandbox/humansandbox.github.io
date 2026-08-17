@@ -1,4 +1,4 @@
-# forum-machina
+# humansandbox
 
 Measured economics of AI-agent software testing — a primary-evidence archive (static site for GitHub Pages).
 
