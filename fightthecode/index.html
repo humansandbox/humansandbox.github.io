@@ -4,16 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fight the Code — human sandbox</title>
-    <meta name="description" content="Fight the Code — read small C# tasks as analyzed by the ORANGE TESTABLE engine: the production code, its verdict, coverage, and dead lines.">
+    <meta name="description" content="Fight the Code — read small C# tasks and find what is wrong with them: the code, its line coverage, and the lines no input can reach.">
     <link rel="stylesheet" href="../css/site.css">
     <style>
         .sidebar .page-label { color: #ffd97a; font-weight: 700; pointer-events: none; padding: 10px 16px 4px; font-size: 0.95rem; }
         .sidebar a.task.active { background: rgba(125, 223, 143, 0.18); border-left: 3px solid #7ddf8f; padding-left: 23px; }
         .sidebar .task-sub { display: block; color: #9db8dd; font-size: 0.76rem; margin-top: 1px; }
         .sidebar .back { color: #b0c4de; font-size: 0.85rem; }
-        .verdict { display: inline-block; padding: 2px 10px; font-weight: 700; font-size: 0.85rem; color: #fff; background: #6c757d; }
-        .verdict.orange { background: #e8590c; }
-        .verdict.redgreen { background: #c92a2a; }
+        .header-row { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px; }
+        .btn { display: inline-block; border: 1px solid #212529; background: #212529; color: #7ddf8f; font: inherit; font-size: 0.9rem; font-weight: 600; padding: 6px 16px; cursor: pointer; }
+        .btn:hover { background: #343a40; }
+        .btn.light { background: #fff; color: #212529; }
+        .btn.light:hover { background: #f1f3f5; }
+        .actions { margin-top: 12px; }
+        /* modals */
+        .modal-back { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 200; }
+        .modal-back[hidden] { display: none; }
+        .modal { background: #fff; width: 100%; max-width: 380px; padding: 24px 22px 18px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); text-align: center; position: relative; }
+        .modal .close { position: absolute; top: 6px; right: 10px; border: 0; background: none; font-size: 1.4rem; line-height: 1; color: #6c757d; cursor: pointer; }
+        .modal h2 { margin: 0 0 8px; font-size: 1.25rem; }
+        .modal p { margin: 6px 0 14px; color: #495057; font-size: 0.9rem; }
+        .soon { font-size: 1.5rem; font-weight: 700; color: #2f9e44; margin: 6px 0 14px; }
+        .gsi { display: inline-flex; align-items: center; gap: 10px; border: 1px solid #dadce0; background: #fff; color: #3c4043; font: 500 0.92rem/1 Roboto, Arial, sans-serif; padding: 10px 18px; border-radius: 4px; cursor: pointer; }
+        .gsi:hover { background: #f8f9fa; box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3); }
+        .gsi svg { width: 18px; height: 18px; }
+        .gsi-soon { color: #2f9e44; font-weight: 700; font-size: 1.1rem; margin-top: 12px; }
+        .fine { font-size: 0.76rem; color: #868e96; margin-top: 14px; }
         .meta-row { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; font-size: 0.9rem; margin: 6px 0 12px; }
         .meta-row .k { color: #6c757d; margin-right: 4px; }
         .code-box { border: 1px solid #dee2e6; background: #1e1e1e; overflow-x: auto; }
@@ -43,8 +59,11 @@
 
     <main>
         <div class="header-section">
-            <span class="header-title">Fight the Code</span>
-            <div class="header-sub">Small C# tasks, read by the ORANGE TESTABLE engine. Pick a task from the sidebar.</div>
+            <div class="header-row">
+                <span class="header-title">Fight the Code</span>
+                <button type="button" class="btn light" id="btn-member">Become Member</button>
+            </div>
+            <div class="header-sub">Small C# tasks. Pick a task from the sidebar, read the code, and find what is wrong.</div>
         </div>
 
         <div class="section-card">
@@ -53,20 +72,45 @@
             <div class="meta-row" id="meta-row"></div>
             <div class="status" id="status">Fetching the task from the API…</div>
             <div class="code-box" id="code-box" hidden><table><tbody id="code-body"></tbody></table></div>
-            <p class="hint" id="dead-hint" hidden>Lines highlighted in red are <b>dead code</b>: the engine proved no input can reach them.</p>
+            <p class="hint" id="dead-hint" hidden>Lines highlighted in red are <b>dead code</b>: no input can reach them.</p>
+            <div class="actions"><button type="button" class="btn" id="btn-submit">Submit Answer</button></div>
         </div>
 
         <div class="section-card">
             <div class="section-title"><span class="accent-bar"></span>What you are looking at</div>
             <p>
-                Each task is a short C# method stored in the StrictDev task database. The ORANGE TESTABLE engine reads the code
-                statically, enumerates every branch, and reports a verdict. <b>ORANGE</b> means the method is loop-free and
-                finitely branched after analysis, so its full result table can be derived without writing tests by hand.
-                Coverage is the line coverage measured when the derived tests are run.
+                Each task is a short C# method. Read it, work out which inputs lead to which results, and find the lines
+                that can never run. Line coverage is the share of lines reached when the method's tests are run.
+                Submitting your own answer is coming soon.
             </p>
             <p class="hint">Task names and code comments are in Japanese, as recorded.</p>
         </div>
     </main>
+
+    <!-- Submit Answer: placeholder only -->
+    <div class="modal-back" id="modal-submit" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="submit-h">
+            <button type="button" class="close" data-close aria-label="Close">&times;</button>
+            <h2 id="submit-h">Submit Answer</h2>
+            <div class="soon">Coming Soon</div>
+            <button type="button" class="btn" data-close>OK</button>
+        </div>
+    </div>
+
+    <!-- Become Member: mock sign-in screen. There is no real authentication and nothing is sent anywhere. -->
+    <div class="modal-back" id="modal-member" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="member-h">
+            <button type="button" class="close" data-close aria-label="Close">&times;</button>
+            <h2 id="member-h">Become Member</h2>
+            <p>Sign in to save your answers and join Fight the Code.</p>
+            <button type="button" class="gsi" id="btn-gsi">
+                <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                Sign in with Google
+            </button>
+            <div class="gsi-soon" id="gsi-soon" hidden>Coming Soon</div>
+            <div class="fine">Membership is not open yet.</div>
+        </div>
+    </div>
 
     <footer>human sandbox &#8212; static page. Task data is fetched live from brickjpnapi.com.</footer>
 
@@ -74,7 +118,7 @@
         // ---- Hard-coded allowlist. Nothing outside this list is ever requested. ----
         const TASKS = [
             { key: 'fizzbuzz-loop-bad',  id: 'C#        10248', seq: 0, title: 'FizzBuzz with a loop — wrong order',   sub: 'C# 10248 / SEQ 0',
-              note: 'Checks i % 3 before i % 15, so "FizzBuzz" can never be printed. Can you spot the unreachable line before the engine does?' },
+              note: 'Checks i % 3 before i % 15, so "FizzBuzz" can never be printed. Can you spot the unreachable line?' },
             { key: 'fizzbuzz-loop-good', id: 'C#        10248', seq: 1, title: 'FizzBuzz with a loop — correct order', sub: 'C# 10248 / SEQ 1',
               note: 'Same method with the checks in the right order.' },
             { key: 'shipping-remote-island', id: 'C#        00024', seq: 0, title: 'Shipping fee with remote islands', sub: 'C# 00024 / SEQ 0',
@@ -130,15 +174,9 @@
         }
 
         function renderRecord(row) {
-            const kind = String(row.BRICK_TESTABILITY_KIND || '').trim();
-            const badge = document.createElement('span');
-            badge.className = 'verdict' + (/ORANGE|ORN/.test(kind) && !/RED_GREEN/.test(kind) ? ' orange' : (/RED/.test(kind) ? ' redgreen' : ''));
-            badge.textContent = kind || '(not analyzed)';
-            addMeta('Verdict', badge);
-
             const cov = row.XUNIT_TEST_COVERAGE;
             if (cov !== null && cov !== undefined && cov !== '') {
-                addMeta('Measured line coverage', document.createTextNode(Number(cov).toFixed(2) + '%'));
+                addMeta('Line coverage', document.createTextNode(Number(cov).toFixed(2) + '%'));
             }
 
             const dead = parseDeadLines(row.BRICK_RESULT_DEAD_CODE_POSITION);
@@ -201,6 +239,19 @@
         }
 
         select(TASKS[0]);
+
+        // ---- Modals (placeholders: no network, no data collected) ----
+        el('btn-submit').addEventListener('click', function () { el('modal-submit').hidden = false; });
+        el('btn-member').addEventListener('click', function () { el('gsi-soon').hidden = true; el('modal-member').hidden = false; });
+        el('btn-gsi').addEventListener('click', function () { el('gsi-soon').hidden = false; });
+        document.querySelectorAll('.modal-back').forEach(function (m) {
+            m.addEventListener('click', function (ev) {
+                if (ev.target === m || ev.target.hasAttribute('data-close')) m.hidden = true;
+            });
+        });
+        document.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Escape') document.querySelectorAll('.modal-back').forEach(function (m) { m.hidden = true; });
+        });
 
         el('hamburger').addEventListener('click', function () {
             el('sidebar').classList.toggle('active');
