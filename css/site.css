@@ -39,6 +39,7 @@ body {
     display: block;
 }
 .sidebar .section-label { color: #b0c4de; font-weight: 600; pointer-events: none; }
+.sidebar .top-link { color: #b0c4de; font-weight: 600; }
 .sidebar .dot-green { color: #2f9e44; margin-right: 4px; }
 .sidebar .ext { color: #9db8dd; font-size: 0.78rem; margin-left: 4px; }
 
