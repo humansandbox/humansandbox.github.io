@@ -6,6 +6,8 @@
     <title>Fight the Code — human sandbox</title>
     <meta name="description" content="Fight the Code — read small C# tasks and find what is wrong with them: the code, its line coverage, and the lines no input can reach.">
     <link rel="stylesheet" href="../css/site.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/vs2015.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         .sidebar .page-label { color: #ffd97a; font-weight: 700; pointer-events: none; padding: 10px 16px 4px; font-size: 0.95rem; }
         .sidebar a.task.active { background: rgba(125, 223, 143, 0.18); border-left: 3px solid #7ddf8f; padding-left: 23px; }
@@ -32,9 +34,18 @@
         .fine { font-size: 0.76rem; color: #868e96; margin-top: 14px; }
         .meta-row { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; font-size: 0.9rem; margin: 6px 0 12px; }
         .meta-row .k { color: #6c757d; margin-right: 4px; }
-        .code-box { border: 1px solid #dee2e6; background: #1e1e1e; overflow-x: auto; }
-        .code-box table { border-collapse: collapse; width: 100%; font-family: Consolas, Monaco, "Courier New", monospace; font-size: 0.86rem; }
-        .code-box td { padding: 0 10px; vertical-align: top; white-space: pre; color: #d4d4d4; }
+        .code-box { position: relative; border-radius: 5px; background: #1e1e1e; overflow: hidden; }
+        .code-box .scroll { overflow-x: auto; padding: 12px 0; }
+        .code-box table { border-collapse: collapse; width: 100%; font-family: Consolas, Monaco, "Courier New", monospace; font-size: 0.9rem; line-height: 1.45; }
+        .code-box td { padding: 0 12px; vertical-align: top; white-space: pre; color: #dcdcdc; }
+        .code-box td.src { padding-right: 60px; }
+        .code-box .copy-btn { position: absolute; top: 6px; right: 14px; z-index: 10; font-size: 0.8rem; padding: 2px 6px; border: 1px solid #0d6efd; border-radius: 3px; color: #0d6efd; background: rgba(255, 255, 255, 0.7); opacity: 0.8; cursor: pointer; transition: opacity 0.2s ease; }
+        .code-box:hover .copy-btn { opacity: 1; }
+        .code-box .copy-btn:hover { background: #0d6efd; color: #fff; }
+        .code-box .copy-btn.copy-success { background: #28a745; border-color: #28a745; color: #fff; }
+        .code-box .scroll::-webkit-scrollbar { height: 8px; }
+        .code-box .scroll::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .code-box .scroll::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
         .code-box td.ln { color: #6e7681; text-align: right; user-select: none; width: 1%; border-right: 1px solid #333; }
         .code-box tr.dead td { background: rgba(201, 42, 42, 0.35); }
         .code-box tr.dead td.ln { color: #ffb3b3; }
@@ -71,7 +82,10 @@
             <div class="hint" id="task-note"></div>
             <div class="meta-row" id="meta-row"></div>
             <div class="status" id="status">Fetching the task from the API…</div>
-            <div class="code-box" id="code-box" hidden><table><tbody id="code-body"></tbody></table></div>
+            <div class="code-box" id="code-box" hidden>
+                <div class="scroll"><table><tbody id="code-body"></tbody></table></div>
+                <button type="button" class="copy-btn" id="btn-copy" title="Copy code" aria-label="Copy code"><i class="fas fa-copy"></i></button>
+            </div>
             <p class="hint" id="dead-hint" hidden>Lines highlighted in red are <b>dead code</b>: no input can reach them.</p>
             <div class="actions"><button type="button" class="btn" id="btn-submit">Submit Answer</button></div>
         </div>
@@ -114,6 +128,8 @@
 
     <footer>human sandbox &#8212; static page. Task data is fetched live from brickjpnapi.com.</footer>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/csharp.min.js"></script>
     <script>
         // ---- Hard-coded allowlist. Nothing outside this list is ever requested. ----
         const TASKS = [
@@ -151,6 +167,58 @@
             }
         }
 
+        let currentCode = '';
+
+        // Highlight the whole method once (so multi-line comments and strings stay correct),
+        // then split the HTML into lines, re-opening any <span> left open at a line break.
+        // Returns null entries when highlight.js is unavailable (plain text fallback).
+        function highlightLines(code) {
+            const count = code.split('\n').length;
+            if (typeof hljs === 'undefined') return new Array(count).fill(null);
+            const html = hljs.highlight(code, { language: 'csharp', ignoreIllegals: true }).value;
+            const out = [];
+            let open = [];
+            for (const part of html.split('\n')) {
+                let line = open.join('') + part;
+                const re = /<span[^>]*>|<\/span>/g;
+                let m;
+                while ((m = re.exec(part)) !== null) {
+                    if (m[0] === '</span>') open.pop(); else open.push(m[0]);
+                }
+                line += '</span>'.repeat(open.length);
+                out.push(line);
+            }
+            return out;
+        }
+
+        async function copyCode(button) {
+            const text = currentCode;
+            if (!text) return;
+            let ok = false;
+            try {
+                if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); ok = true; }
+            } catch (e) { /* fall back below */ }
+            if (!ok) {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.setAttribute('readonly', '');
+                ta.style.position = 'fixed';
+                ta.style.left = '-9999px';
+                document.body.appendChild(ta);
+                ta.select();
+                try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+                document.body.removeChild(ta);
+            }
+            if (ok) {
+                button.innerHTML = '<i class="fas fa-check"></i>';
+                button.classList.add('copy-success');
+                setTimeout(function () {
+                    button.innerHTML = '<i class="fas fa-copy"></i>';
+                    button.classList.remove('copy-success');
+                }, 1500);
+            }
+        }
+
         function parseDeadLines(raw) {
             const set = new Set();
             if (!raw) return set;
@@ -183,16 +251,20 @@
             addMeta('Dead lines', document.createTextNode(dead.size ? Array.from(dead).sort((a, b) => a - b).join(', ') : 'none'));
 
             const code = String(row.PRODUCTION_CODE || '').replace(/\r\n/g, '\n');
+            currentCode = code;
+            const lines = highlightLines(code);
             const tbody = el('code-body');
             tbody.replaceChildren();
-            code.split('\n').forEach((line, i) => {
+            lines.forEach((html, i) => {
                 const tr = document.createElement('tr');
                 if (dead.has(i + 1)) tr.className = 'dead';
                 const ln = document.createElement('td');
                 ln.className = 'ln';
                 ln.textContent = String(i + 1);
                 const src = document.createElement('td');
-                src.textContent = line.length ? line : ' ';
+                src.className = 'src';
+                if (html === null) src.textContent = code.split('\n')[i] || ' ';
+                else src.innerHTML = html || ' ';
                 tr.appendChild(ln);
                 tr.appendChild(src);
                 tbody.appendChild(tr);
@@ -209,6 +281,7 @@
             el('status').textContent = 'Fetching the task from the API…';
             el('code-box').hidden = true;
             el('dead-hint').hidden = true;
+            currentCode = '';
 
             const url = new URL(API);
             url.searchParams.set('vname', 'V_LANGUAGE_STP');
@@ -239,6 +312,8 @@
         }
 
         select(TASKS[0]);
+
+        el('btn-copy').addEventListener('click', function () { copyCode(this); });
 
         // ---- Modals (placeholders: no network, no data collected) ----
         el('btn-submit').addEventListener('click', function () { el('modal-submit').hidden = false; });
