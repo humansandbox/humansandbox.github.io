@@ -84,20 +84,19 @@
 
         function el(id) { return document.getElementById(id); }
 
-        function pickTask() {
-            let key = '';
-            try { key = new URLSearchParams(window.location.search).get('q') || ''; } catch (e) { key = ''; }
-            return TASKS.find(t => t.key === key) || TASKS[0];
-        }
-
         function renderSidebar(current) {
             const ul = el('task-list');
             ul.replaceChildren();
             for (const t of TASKS) {
                 const li = document.createElement('li');
                 const a = document.createElement('a');
-                a.href = '?q=' + encodeURIComponent(t.key);
+                a.href = '#';
                 a.className = 'task' + (t === current ? ' active' : '');
+                a.addEventListener('click', function (ev) {
+                    ev.preventDefault();
+                    select(t);
+                    el('sidebar').classList.remove('active');
+                });
                 a.textContent = t.title;
                 const s = document.createElement('span');
                 s.className = 'task-sub';
@@ -194,10 +193,14 @@
             }
         }
 
-        const current = pickTask();
-        document.title = current.title + ' — Fight the Code';
-        renderSidebar(current);
-        load(current);
+        // The URL never changes: tasks are switched in place from the page sidebar.
+        function select(task) {
+            document.title = task.title + ' — Fight the Code';
+            renderSidebar(task);
+            load(task);
+        }
+
+        select(TASKS[0]);
 
         el('hamburger').addEventListener('click', function () {
             el('sidebar').classList.toggle('active');
