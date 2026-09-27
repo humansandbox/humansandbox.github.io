@@ -30,10 +30,15 @@
         /* ---- legend ---- */
         .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 0.85rem; margin: 4px 0 12px; align-items: center; }
         .legend .item { display: inline-flex; align-items: center; gap: 6px; }
-        .dot { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; color: #fff; font-weight: 700; font-size: 0.8rem; border: 2px solid transparent; flex: none; }
-        .dot.ok { background: var(--ok); }
-        .dot.ng { background: var(--ng); }
+        /* 実装・テストは丸(正=白、誤=黒)。オラクルは四角(正=金、誤=さび)。赤・緑は結果のランプだけに使う */
+        .dot { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; font-weight: 700; font-size: 0.8rem; border: 2px solid #212529; flex: none; }
+        .dot.ok { background: #fff; color: #212529; }
+        .dot.ng { background: #000; color: #fff; border-color: #000; }
         .dot.absent { background: #fff; color: var(--absent); border: 2px dashed var(--absent); }
+        .dot.o { border-radius: 4px; }
+        .dot.o.ok { background: linear-gradient(135deg, #fff3b0 0%, #f6c81c 40%, #c9960c 75%, #f2d57a 100%); color: #3d2b00; border-color: #a67c00; }
+        .dot.o.ng { background: radial-gradient(circle at 70% 65%, rgba(45,20,8,0.85) 0 14%, transparent 15%), radial-gradient(circle at 28% 72%, rgba(60,28,10,0.8) 0 9%, transparent 10%), radial-gradient(circle at 35% 30%, #c8763a 0%, #9a4f1f 45%, #5e3014 100%); color: #f3e2cf; border-color: #4a2a12; }
+        .quad .hd .dot.ng { border-color: #adb5bd; }
         .lamp { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.25); flex: none; }
         .lamp.green { background: var(--lamp-green); }
         .lamp.red { background: var(--lamp-red); }
@@ -53,8 +58,7 @@
         .cell .dots { display: flex; gap: 5px; }
         .cell .signal { display: inline-flex; align-items: center; gap: 5px; font-size: 0.76rem; font-weight: 700; color: #495057; }
         .cell .name { font-size: 0.82rem; font-weight: 600; line-height: 1.35; }
-        .cell.blind .name { color: var(--ng); }
-        .cell .tag { font-size: 0.68rem; color: var(--ng); font-weight: 700; }
+        .cell .tag { font-size: 0.74rem; color: #212529; font-weight: 700; line-height: 1.35; }
         .cell.unthinkable { background: #000; border-color: #000; color: #adb5bd; cursor: default; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; }
         .cell.unthinkable:hover { background: #000; border-color: #000; }
         .corner { background: #f8f9fa; border: 1px solid #dee2e6; font-size: 0.72rem; color: #6c757d; padding: 6px 8px; display: flex; align-items: center; }
@@ -120,12 +124,13 @@
                     <label class="switch"><input type="checkbox" id="absent-toggle"><span class="track"></span>不在オラクルの行を表示する(12象限)</label>
                 </div>
                 <div class="legend">
-                    <span class="item"><span class="dot ok">O</span> オラクル</span>
+                    <span class="item"><span class="dot o ok">O</span> 正オラクル</span>
+                    <span class="item"><span class="dot o ng">O</span> 誤オラクル</span>
+                    <span class="item" id="legend-absent" hidden><span class="dot o absent">?</span> 不在オラクル</span>
                     <span class="item"><span class="dot ok">I</span> 実装</span>
                     <span class="item"><span class="dot ok">T</span> テスト</span>
                     <span class="item"><span class="dot ok">&nbsp;</span> 正</span>
                     <span class="item"><span class="dot ng">&nbsp;</span> 誤</span>
-                    <span class="item" id="legend-absent" hidden><span class="dot absent">?</span> 不在(曖昧)</span>
                     <span class="item"><span class="lamp green"></span> 緑</span>
                     <span class="item"><span class="lamp red"></span> 赤</span>
                     <span class="item"><span class="lamp mixed"></span> 緑または赤</span>
@@ -134,7 +139,7 @@
                 <p class="header-sub" style="margin-top:10px">
                     実装とテストの「正・誤」は<i>オラクルに忠実か</i>で読む。通常の議論は「正オラクル・誤実装・正テスト」の一象限だけを見て
                     「テストが欠陥を見つける」と語るが、それは象限の一つにすぎない。<b>誤オラクルの行の左端(盲点)が一番意識されない</b>。
-                    盲点の２位は「正オラクル・誤実装・誤テスト」の<b>隠れた緑</b>。すべて緑のまま欠陥が残り、露出させるのはミューテーションか欠陥の注入だけである。
+                    盲点の２位は「正オラクル・誤実装・誤テスト」。同じ方向に誤ると緑のまま欠陥が残り、露出させるのはミューテーションか欠陥の注入だけである。
                     <span id="absent-note" hidden>不在オラクルの行では、実装とテストのどちらが正でどちらが誤かを決める参照点が無い。片方だけが正という中央の二つは考え得ない(unthinkable)。</span>
                 </p>
             </div>
@@ -189,7 +194,7 @@
 
         const SCENES_BY_KEY = {
             wrong: [ // 誤オラクル
-              { name: '盲点', blind: true, tag: '盲点１位！ 一番意識されない', lamp: 'green',
+              { name: '', blind: true, tag: '盲点１位！ 一番意識されない', lamp: 'green',
                 panels: [
                   RULE_WRONG,
                   { h: '実装', who: [{r:'I',s:'ok'}], bubble: 'total > 10000 なら無料。', caption: '言われたとおりに書く。' },
@@ -237,7 +242,7 @@
                   { h: '赤', who: [{r:'CI',s:'red'},{r:'I',s:'ng'}], bubble: '赤。開発者が > を >= に直す。', caption: 'テストが本来の職務を果たす。' },
                   { h: '結果', who: [{r:'CI',s:'green'},{r:'CUST',s:'ok'}], bubble: '緑。お客様は送料無料。', caption: 'テストの教科書的な物語。' } ],
                 exit: 'テストが本来の職務を果たす唯一の象限。8 つのうちの 1 つ(不在の行を含めても 12 のうちの 1 つ)にすぎない。' },
-              { name: '隠れた緑', blind: true, tag: '盲点２位！ もし緑として出てしまったら', lamp: 'mixed',
+              { name: '', blind: true, tag: '盲点２位！ もし緑として出てしまったら', lamp: 'mixed',
                 panels: [
                   RULE_OK,
                   { h: '実装とテスト', who: [{r:'I',s:'ng'},{r:'T',s:'ng'}], bubble: '実装: total > 10000。テスト: fee >= 0(常に真)、または実装と同じ読み違い。', caption: '両方が同じ方向に誤っている。' },
@@ -273,7 +278,7 @@
 
         function dot(letter, state) {
             const d = document.createElement('span');
-            d.className = 'dot ' + state;
+            d.className = 'dot ' + state + (letter === 'O' ? ' o' : '');
             d.textContent = state === 'absent' ? '?' : letter;
             return d;
         }
@@ -301,17 +306,26 @@
                     <line x1="20" y1="44" x2="6" y2="56" stroke="#495057" stroke-width="3" stroke-linecap="round"/>
                     <line x1="20" y1="44" x2="34" y2="52" stroke="#495057" stroke-width="3" stroke-linecap="round"/>
                     <rect x="30" y="46" width="14" height="18" fill="#fff" stroke="#495057" stroke-width="1.5"/>
-                    <line x1="33" y1="51" x2="41" y2="51" stroke="#495057"/><line x1="33" y1="55" x2="41" y2="55" stroke="#495057"/><line x1="33" y1="59" x2="39" y2="59" stroke="${s === 'ok' ? COLOR.ok : COLOR.ng}" stroke-width="2"/>
+                    <line x1="33" y1="51" x2="41" y2="51" stroke="#495057"/><line x1="33" y1="55" x2="41" y2="55" stroke="#495057"/><line x1="33" y1="59" x2="39" y2="59" stroke="#495057" stroke-width="2"/>
                     <line x1="20" y1="66" x2="11" y2="90" stroke="#495057" stroke-width="3" stroke-linecap="round"/>
                     <line x1="20" y1="66" x2="29" y2="90" stroke="#495057" stroke-width="3" stroke-linecap="round"/>
                     <text x="20" y="102" text-anchor="middle" font-size="9" fill="#495057" ${F}>お客様</text></g>`;
             }
-            const absent = s === 'absent';
-            const head = absent
-                ? `<circle cx="20" cy="22" r="13" fill="#fff" stroke="${COLOR.absent}" stroke-width="2.5" stroke-dasharray="4 3"/><text x="20" y="27" text-anchor="middle" font-size="14" font-weight="700" fill="${COLOR.absent}" ${F}>?</text>`
-                : `<circle cx="20" cy="22" r="13" fill="${COLOR[s]}"/><text x="20" y="27" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" ${F}>${a.r}</text>`;
+            // 頭: オラクルは四角(正=金、誤=さび、不在=点線)。実装・テストは丸(正=白、誤=黒)。
+            let head;
+            if (a.r === 'O') {
+                head = s === 'absent'
+                    ? `<rect x="7" y="9" width="26" height="26" rx="3" fill="#fff" stroke="${COLOR.absent}" stroke-width="2.5" stroke-dasharray="4 3"/><text x="20" y="27" text-anchor="middle" font-size="14" font-weight="700" fill="${COLOR.absent}" ${F}>?</text>`
+                    : s === 'ok'
+                    ? `<rect x="7" y="9" width="26" height="26" rx="3" fill="url(#gold)" stroke="#a67c00" stroke-width="1.5"/><text x="20" y="27" text-anchor="middle" font-size="13" font-weight="700" fill="#3d2b00" ${F}>O</text>`
+                    : `<rect x="7" y="9" width="26" height="26" rx="3" fill="url(#rust)" stroke="#4a2a12" stroke-width="1.5"/><circle cx="27" cy="28" r="3" fill="#2d1408" opacity="0.8"/><circle cx="13" cy="30" r="2" fill="#3c1c0a" opacity="0.8"/><circle cx="25" cy="14" r="1.5" fill="#e0a070" opacity="0.6"/><text x="20" y="27" text-anchor="middle" font-size="13" font-weight="700" fill="#f3e2cf" ${F}>O</text>`;
+            } else {
+                head = s === 'ng'
+                    ? `<circle cx="20" cy="22" r="13" fill="#000"/><text x="20" y="27" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" ${F}>${a.r}</text>`
+                    : `<circle cx="20" cy="22" r="13" fill="#fff" stroke="#212529" stroke-width="2"/><text x="20" y="27" text-anchor="middle" font-size="13" font-weight="700" fill="#212529" ${F}>${a.r}</text>`;
+            }
             const arms = a.r === 'I' ? '<line x1="20" y1="44" x2="4" y2="50" stroke="#495057" stroke-width="3" stroke-linecap="round"/><line x1="20" y1="44" x2="36" y2="50" stroke="#495057" stroke-width="3" stroke-linecap="round"/><rect x="0" y="50" width="40" height="6" rx="1" fill="#adb5bd"/>'
-                       : a.r === 'T' ? '<line x1="20" y1="44" x2="8" y2="58" stroke="#495057" stroke-width="3" stroke-linecap="round"/><line x1="20" y1="44" x2="34" y2="40" stroke="#495057" stroke-width="3" stroke-linecap="round"/><path d="M32 36 l4 5 l7 -9" stroke="' + (s === 'ng' ? COLOR.ng : COLOR.ok) + '" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+                       : a.r === 'T' ? '<line x1="20" y1="44" x2="8" y2="58" stroke="#495057" stroke-width="3" stroke-linecap="round"/><line x1="20" y1="44" x2="34" y2="40" stroke="#495057" stroke-width="3" stroke-linecap="round"/><path d="M32 36 l4 5 l7 -9" stroke="#495057" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
                        : '<line x1="20" y1="44" x2="6" y2="58" stroke="#495057" stroke-width="3" stroke-linecap="round"/><line x1="20" y1="44" x2="36" y2="36" stroke="#495057" stroke-width="3" stroke-linecap="round"/>';
             const role = a.r === 'O' ? 'オーナー' : a.r === 'I' ? '開発者' : 'テスター';
             return `<g transform="translate(${x},0)">${head}
@@ -322,7 +336,11 @@
         }
         function stageSvg(who) {
             const w = who.length * 46 + 4;
-            const defs = '<defs><linearGradient id="mixed" x1="0" x2="1"><stop offset="0.5" stop-color="#40c057"/><stop offset="0.5" stop-color="#e03131"/></linearGradient></defs>';
+            const defs = '<defs>'
+                + '<linearGradient id="mixed" x1="0" x2="1"><stop offset="0.5" stop-color="#40c057"/><stop offset="0.5" stop-color="#e03131"/></linearGradient>'
+                + '<linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset="0.4" stop-color="#f6c81c"/><stop offset="0.75" stop-color="#c9960c"/><stop offset="1" stop-color="#f2d57a"/></linearGradient>'
+                + '<radialGradient id="rust" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#c8763a"/><stop offset="0.45" stop-color="#9a4f1f"/><stop offset="1" stop-color="#5e3014"/></radialGradient>'
+                + '</defs>';
             return `<svg viewBox="0 0 ${w} 106" width="${w}" height="106" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${defs}${who.map((a, i) => figure(a, 4 + i * 46)).join('')}</svg>`;
         }
 
@@ -367,14 +385,14 @@
                     }
                     const b = document.createElement('button');
                     b.type = 'button'; b.className = 'cell' + (sc.blind ? ' blind' : ''); b.setAttribute('role', 'gridcell');
-                    b.setAttribute('aria-label', r.label + '、' + c.label + ': ' + sc.name);
+                    b.setAttribute('aria-label', r.label + '、' + c.label + ': ' + (sc.name || sc.tag));
                     const d = document.createElement('div'); d.className = 'dots';
                     d.appendChild(dot('O', r.o)); d.appendChild(dot('I', c.i)); d.appendChild(dot('T', c.t));
                     b.appendChild(d);
                     const sg = document.createElement('span'); sg.className = 'signal';
                     sg.appendChild(lampEl(sc.lamp)); sg.appendChild(document.createTextNode(sc.lamp === 'mixed' ? '緑 / 赤' : sc.lamp === 'green' ? '緑' : '赤'));
                     b.appendChild(sg);
-                    const nm = document.createElement('div'); nm.className = 'name'; nm.textContent = sc.name; b.appendChild(nm);
+                    if (sc.name) { const nm = document.createElement('div'); nm.className = 'name'; nm.textContent = sc.name; b.appendChild(nm); }
                     if (sc.tag) { const t = document.createElement('span'); t.className = 'tag'; t.textContent = sc.tag; b.appendChild(t); }
                     b.dataset.ri = ri; b.dataset.ci = ci;
                     b.addEventListener('mouseenter', () => show(ri, ci));
@@ -406,7 +424,7 @@
             const r = ROWS[ri], c = COLS[ci];
             const dd = document.getElementById('comic-dots'); dd.replaceChildren();
             dd.appendChild(dot('O', r.o)); dd.appendChild(dot('I', c.i)); dd.appendChild(dot('T', c.t));
-            document.getElementById('comic-title').textContent = sc.name;
+            document.getElementById('comic-title').textContent = sc.name || sc.tag;
             document.getElementById('comic-sub').textContent = r.label + ' · ' + c.label + '(' + sc.panels.length + 'コマ)';
             const ps = document.getElementById('panels'); ps.replaceChildren();
             sc.panels.forEach((p, i) => {
