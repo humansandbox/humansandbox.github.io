@@ -133,7 +133,7 @@
                 <div class="quad" id="quad" role="grid" aria-label="テストの象限"></div>
                 <p class="header-sub" style="margin-top:10px">
                     実装とテストの「正・誤」は<i>オラクルに忠実か</i>で読む。通常の議論は「正オラクル・誤実装・正テスト」の一象限だけを見て
-                    「テストが欠陥を見つける」と語るが、それは象限の一つにすぎない。<b>左上の象限が一番意識されない</b>。
+                    「テストが欠陥を見つける」と語るが、それは象限の一つにすぎない。<b>誤オラクルの行の左端(盲点)が一番意識されない</b>。
                     盲点の２位は「正オラクル・誤実装・誤テスト」の<b>隠れた緑</b>。すべて緑のまま欠陥が残り、露出させるのはミューテーションか欠陥の注入だけである。
                     <span id="absent-note" hidden>不在オラクルの行では、実装とテストのどちらが正でどちらが誤かを決める参照点が無い。片方だけが正という中央の二つは考え得ない(unthinkable)。</span>
                 </p>
@@ -169,8 +169,8 @@
         // ---------- データ ----------
         // 状態: 'ok' | 'ng' | 'absent'
         const ROWS = [
-            { key: 'wrong',   o: 'ng',     label: '誤オラクル',   sub: '期待値そのものが誤り' },
             { key: 'correct', o: 'ok',     label: '正オラクル',   sub: '期待値が確定し、正しい' },
+            { key: 'wrong',   o: 'ng',     label: '誤オラクル',   sub: '期待値そのものが誤り' },
             { key: 'absent',  o: 'absent', label: '不在オラクル', sub: '曖昧・未確定', optional: true }
         ];
         const COLS = [
@@ -187,8 +187,8 @@
         const RULE_OK      = { h: 'ルール', who: [{r:'O',s:'ok'}], bubble: '10,000 円以上で送料無料です。', caption: 'ルールは正しく伝わっている。' };
         const RULE_ABSENT  = { h: 'ルール', who: [{r:'O',s:'absent'}], bubble: 'だいたい 1 万円を超えたら送料無料でいいよ。', think: true, caption: '「超えたら」は 1 万円ちょうどを含むのか。オーナーはまだ決めていない。' };
 
-        const SCENES = [
-            [ // 誤オラクル
+        const SCENES_BY_KEY = {
+            wrong: [ // 誤オラクル
               { name: '盲点', blind: true, tag: '盲点１位！ 一番意識されない', lamp: 'green',
                 panels: [
                   RULE_WRONG,
@@ -216,7 +216,7 @@
                   { h: '実装とテストと結果', who: [{r:'I',s:'ng'},{r:'T',s:'ng'},{r:'CI',s:'mixed'}], bubble: '二人とも記憶で書き、別々の方向に仕様からずれた。同じ方向なら緑、違えば赤。', caption: '参照点が誤っている以上、どちらの色も意味を持たない。' } ],
                 exit: 'オラクルを直すまで、ここでは何も推論できない。' }
             ],
-            [ // 正オラクル
+            correct: [ // 正オラクル
               { name: 'あるべき状態', lamp: 'green',
                 panels: [
                   RULE_OK,
@@ -246,7 +246,7 @@
                   { h: 'その後', who: [{r:'T',s:'ok'},{r:'I',s:'ok'}], bubble: 'テストを 10,000 円ちょうどで書き直し、実装も直す。', caption: '露出して初めて直せる。' } ],
                 exit: '同方向の誤りは緑、別方向なら赤。緑のまま残る方が危険で、通常のテスト工程からは見えない。' }
             ],
-            [ // 不在オラクル(表示オプション)
+            absent: [ // 不在オラクル(表示オプション)
               { name: '一致であって正しさではない', lamp: 'green',
                 panels: [
                   RULE_ABSENT,
@@ -263,7 +263,10 @@
                   { h: '別の道', who: [{r:'O',s:'absent'},{r:'I',s:'ng'}], bubble: '結果表なら「10,000 → 有料」の行がそのまま出る。「これでいいですか」とオーナーに聞ける。', caption: '推測が行として露出し、裁定される。' } ],
                 exit: '同一解釈者問題。一つのモデルが実装とテストを書くと、ここに落ちる確率が最も高い。オーナーがたまたま見るまで緑のまま。' }
             ]
-        ];
+        };
+        // 行の並びは ROWS が決める。シーンは行のキーで引く。
+        const SCENES = ROWS.map(r => SCENES_BY_KEY[r.key]);
+        const DEFAULT_CELL = [ROWS.findIndex(r => r.key === 'wrong'), 0]; // 初期表示は盲点
 
         // ---------- 描画部品 ----------
         const COLOR = { ok: '#2f9e44', ng: '#c92a2a', absent: '#868e96', green: '#40c057', red: '#e03131' };
@@ -331,7 +334,7 @@
 
         const quad = document.getElementById('quad');
         let cells = [];
-        let current = [0, 0];
+        let current = DEFAULT_CELL.slice();
 
         function buildGrid() {
             quad.replaceChildren();
@@ -384,7 +387,7 @@
             document.getElementById('qcount').textContent = showAbsent ? '12' : '8';
             document.getElementById('legend-absent').hidden = !showAbsent;
             document.getElementById('absent-note').hidden = !showAbsent;
-            if (!showAbsent && ROWS[current[0]].optional) current = [0, 0];
+            if (!showAbsent && ROWS[current[0]].optional) current = DEFAULT_CELL.slice();
             show(current[0], current[1]);
         }
 
