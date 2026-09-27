@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twelve Test Quadrants — human sandbox</title>
+    <meta name="description" content="The twelve test quadrants: oracle, implementation and test, each correct or wrong (the oracle may also be absent), and what the green or red light really means in each case. Hover a quadrant to see a three-panel business scene.">
+    <link rel="stylesheet" href="css/site.css">
+    <style>
+        :root {
+            --ok: #2f9e44;
+            --ng: #c92a2a;
+            --absent: #868e96;
+            --lamp-green: #40c057;
+            --lamp-red: #e03131;
+        }
+        .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); gap: 14px; align-items: start; }
+        @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } .comic-card { position: static !important; } }
+
+        /* ---- legend ---- */
+        .legend { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 0.85rem; margin: 4px 0 12px; align-items: center; }
+        .legend .item { display: inline-flex; align-items: center; gap: 6px; }
+        .dot { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; color: #fff; font-weight: 700; font-size: 0.8rem; border: 2px solid transparent; flex: none; }
+        .dot.ok { background: var(--ok); }
+        .dot.ng { background: var(--ng); }
+        .dot.absent { background: #fff; color: var(--absent); border: 2px dashed var(--absent); }
+        .lamp { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.25); flex: none; }
+        .lamp.green { background: var(--lamp-green); }
+        .lamp.red { background: var(--lamp-red); }
+        .lamp.mixed { background: linear-gradient(90deg, var(--lamp-green) 50%, var(--lamp-red) 50%); }
+
+        /* ---- grid ---- */
+        .quad { display: grid; grid-template-columns: 110px repeat(4, minmax(0, 1fr)); gap: 4px; }
+        .quad .hd { background: #212529; color: #fff; font-size: 0.78rem; font-weight: 600; padding: 6px 8px; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+        .quad .hd .dots { display: flex; gap: 4px; }
+        .quad .hd .dots .dot { width: 20px; height: 20px; font-size: 0.68rem; }
+        .quad .rh { background: #f1f3f5; border: 1px solid #dee2e6; font-size: 0.78rem; font-weight: 600; padding: 6px 8px; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+        .quad .rh .dot { width: 22px; height: 22px; font-size: 0.72rem; }
+        .quad .rh .sub { font-weight: 400; color: #6c757d; font-size: 0.72rem; }
+        .cell { border: 1px solid #dee2e6; background: #fff; padding: 8px 8px 7px; cursor: pointer; text-align: left; font: inherit; color: inherit; display: flex; flex-direction: column; gap: 6px; min-height: 96px; transition: background 0.12s, border-color 0.12s; position: relative; }
+        .cell:hover, .cell:focus-visible, .cell.active { background: #fffbe6; border-color: #212529; outline: none; }
+        .cell.active { box-shadow: inset 0 0 0 2px #212529; }
+        .cell .dots { display: flex; gap: 5px; }
+        .cell .signal { display: inline-flex; align-items: center; gap: 5px; font-size: 0.74rem; font-weight: 700; color: #495057; }
+        .cell .name { font-size: 0.8rem; font-weight: 600; line-height: 1.3; }
+        .cell.blind .name { color: var(--ng); }
+        .cell .tag { font-size: 0.66rem; color: var(--ng); font-weight: 700; letter-spacing: 0.02em; }
+        .corner { background: #f8f9fa; border: 1px solid #dee2e6; font-size: 0.72rem; color: #6c757d; padding: 6px 8px; display: flex; align-items: center; }
+        @media (max-width: 700px) {
+            .quad { grid-template-columns: 80px repeat(4, minmax(0, 1fr)); }
+            .cell { min-height: 84px; padding: 6px 5px; }
+            .cell .name { font-size: 0.72rem; }
+            .cell .dots .dot { width: 20px; height: 20px; font-size: 0.68rem; }
+            .quad .hd .dots { display: none; }
+        }
+
+        /* ---- comic ---- */
+        .comic-card { position: sticky; top: 14px; }
+        .comic-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+        .comic-head .dots { display: flex; gap: 4px; }
+        .comic-title { font-weight: 700; font-size: 0.95rem; }
+        .comic-sub { font-size: 0.8rem; color: #6c757d; margin-bottom: 10px; }
+        .panel { border: 2px solid #212529; background: #fff; margin-bottom: 8px; display: grid; grid-template-columns: 96px 1fr; min-height: 118px; }
+        .panel .stage { border-right: 1px solid #dee2e6; background: #f8f9fa; display: flex; align-items: center; justify-content: center; padding: 6px 4px; }
+        .panel .stage svg { width: 88px; height: 104px; display: block; }
+        .panel .text { padding: 6px 10px 8px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+        .panel .num { font-size: 0.68rem; color: #6c757d; font-weight: 700; letter-spacing: 0.04em; }
+        .bubble { position: relative; background: #fff; border: 1.5px solid #212529; border-radius: 10px; padding: 6px 9px; font-size: 0.82rem; line-height: 1.4; }
+        .bubble::before { content: ""; position: absolute; left: -9px; top: 12px; border: 6px solid transparent; border-right-color: #212529; border-left: 0; }
+        .bubble::after { content: ""; position: absolute; left: -6px; top: 13px; border: 5px solid transparent; border-right-color: #fff; border-left: 0; }
+        .bubble.think { border-style: dashed; }
+        .caption { font-size: 0.76rem; color: #495057; line-height: 1.4; }
+        .exit { font-size: 0.8rem; margin-top: 4px; padding: 6px 10px; background: #f1f3f5; border-left: 4px solid #212529; }
+        .exit b { color: #212529; }
+    </style>
+</head>
+<body>
+    <div class="hamburger" id="hamburger">&#9776;</div>
+    <nav class="sidebar" id="sidebar">
+        <ul>
+            <li><a href="index.html" class="logo">human sandbox</a></li>
+            <li><a href="#" class="section-label">Main</a>
+                <ul>
+                    <li><a href="index.html">Home / Site Map</a></li>
+                    <li><a href="at_cost_bench.html"><span class="dot-green">&#9679;</span>AT COST BENCH</a></li>
+                    <li><a href="test_quadrants.html"><span class="dot-green">&#9679;</span>Twelve Test Quadrants</a></li>
+                    <li><a href="https://brickjpn.blob.core.windows.net/strictdev/COST_OF_TDD_RGR.html">COST OF TDD/RGR paper<span class="ext">JA &#8599;</span></a></li>
+                    <li><a href="https://brickjpn.blob.core.windows.net/strictdev/GRAND_INQ_COMMUNITY.html">GRAND INQ Community<span class="ext">JA &#8599;</span></a></li>
+                </ul>
+            </li>
+            <li><a href="fightthecode/" class="top-link"><span class="dot-green">&#9679;</span>Fight the Code</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <div class="header-section">
+            <span class="header-title">Twelve Test Quadrants</span>
+            <div class="header-sub">
+                Three parties decide what a test result means: the <b>oracle</b> (who says what the right answer is),
+                the <b>implementation</b>, and the <b>test</b>. Each can be correct or wrong, and the oracle can also be absent.
+                Hover or tap a quadrant to see the business scene it produces.
+            </div>
+        </div>
+
+        <div class="layout">
+            <div class="section-card">
+                <div class="section-title"><span class="accent-bar"></span>The grid</div>
+                <div class="legend">
+                    <span class="item"><span class="dot ok">O</span> oracle</span>
+                    <span class="item"><span class="dot ok">I</span> implementation</span>
+                    <span class="item"><span class="dot ok">T</span> test</span>
+                    <span class="item"><span class="dot ok">&nbsp;</span> correct</span>
+                    <span class="item"><span class="dot ng">&nbsp;</span> wrong</span>
+                    <span class="item"><span class="dot absent">?</span> absent (ambiguous)</span>
+                    <span class="item"><span class="lamp green"></span> green</span>
+                    <span class="item"><span class="lamp red"></span> red</span>
+                    <span class="item"><span class="lamp mixed"></span> either</span>
+                </div>
+                <div class="quad" id="quad" role="grid" aria-label="Twelve test quadrants"></div>
+                <p class="header-sub" style="margin-top:10px">
+                    "Correct" for the implementation and the test means <i>faithful to the oracle</i>. With an absent oracle it means
+                    "agrees with the majority reading". The usual story about testing lives in one quadrant only: correct oracle, wrong
+                    implementation, correct test. The top-left quadrant is the one nobody looks at.
+                </p>
+            </div>
+
+            <div class="section-card comic-card" id="comic">
+                <div class="comic-head">
+                    <div class="dots" id="comic-dots"></div>
+                    <span class="comic-title" id="comic-title"></span>
+                </div>
+                <div class="comic-sub" id="comic-sub"></div>
+                <div id="panels"></div>
+                <div class="exit" id="comic-exit"></div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-title"><span class="accent-bar"></span>The running example</div>
+            <p>
+                An online shop has a shipping rule. In the scenes, the real business rule is <b>"free shipping at 10,000 yen or more"</b>.
+                The oracle is the owner who tells the team the rule; the implementation is the developer's code; the test is the
+                assertion written for the 10,000-yen order. The lamp is the CI result. What changes from quadrant to quadrant is
+                who is wrong, and whether the lamp can tell you.
+            </p>
+            <p class="header-sub">
+                Source: the glossary entry "テスト12象限" on the StrictDev site and GRAND INQ threads 27584, 27576 and 27587.
+            </p>
+        </div>
+    </main>
+
+    <footer>human sandbox &#8212; static page. No data is fetched.</footer>
+
+    <script>
+        // ---------- data ----------
+        // state: 'ok' | 'ng' | 'absent'
+        const ROWS = [
+            { key: 'wrong',   o: 'ng',     label: 'Wrong oracle',   sub: 'the stated expectation is itself wrong' },
+            { key: 'correct', o: 'ok',     label: 'Correct oracle', sub: 'the expectation is settled and right' },
+            { key: 'absent',  o: 'absent', label: 'Absent oracle',  sub: 'ambiguous or undecided' }
+        ];
+        const COLS = [
+            { i: 'ok', t: 'ok', label: 'correct impl. / correct test' },
+            { i: 'ok', t: 'ng', label: 'correct impl. / wrong test' },
+            { i: 'ng', t: 'ok', label: 'wrong impl. / correct test' },
+            { i: 'ng', t: 'ng', label: 'wrong impl. / wrong test' }
+        ];
+
+        // Each scene: name, lamp, panels[3] = {who:[actors], bubble, think?, caption}, exit
+        // Actor: {r:'O'|'I'|'T'|'CI'|'CUST', s:'ok'|'ng'|'absent'|'green'|'red'|'mixed'}
+        const SCENES = [
+            [ // wrong oracle
+              { name: 'The blind spot', blind: true, lamp: 'green',
+                panels: [
+                  { who: [{r:'O',s:'ng'}], bubble: 'Free shipping when the total is more than 10,000 yen.', caption: 'The owner misremembers. The real rule is "10,000 or more".' },
+                  { who: [{r:'I',s:'ok'},{r:'T',s:'ok'}], bubble: 'Code: total > 10000 → free. Test: a 10,000-yen order is charged.', caption: 'Both are faithful to what they were told.' },
+                  { who: [{r:'CI',s:'green'},{r:'CUST',s:'ng'}], bubble: 'All green. A 10,000-yen customer pays 500 yen. Nobody notices.', caption: 'The error ships as the spec. No test, and no fix to the code, will ever surface it.' } ],
+                exit: 'Exit: talk to the oracle. Fix the expectation → correct oracle, correct implementation, correct test. This transition happens outside the test process, which is why it is the quadrant nobody looks at.' },
+              { name: 'Red, filed as a test bug', lamp: 'red',
+                panels: [
+                  { who: [{r:'O',s:'ng'}], bubble: 'Free shipping when the total is more than 10,000 yen.', caption: 'Same wrong oracle.' },
+                  { who: [{r:'I',s:'ok'},{r:'T',s:'ng'}], bubble: 'Code: total > 10000. Test: a 10,000-yen order is free.', caption: 'The tester remembers real practice and writes the opposite. Against the oracle, the test is "wrong".' },
+                  { who: [{r:'CI',s:'red'},{r:'O',s:'ng'}], bubble: 'Red. "The test contradicts the spec — fix the test."', caption: 'The test is rewritten toward the wrong oracle. Green again, bug still there.' } ],
+                exit: 'The red was a real signal, but the reference point is wrong, so it is processed as a test mistake. Exit is still the oracle.' },
+              { name: 'Fixed toward the wrong answer', lamp: 'red',
+                panels: [
+                  { who: [{r:'O',s:'ng'}], bubble: 'Free shipping when the total is more than 10,000 yen.', caption: 'Same wrong oracle.' },
+                  { who: [{r:'I',s:'ng'},{r:'T',s:'ok'}], bubble: 'Code: total >= 10000 (dev knows the shop). Test: 10,000 is charged.', caption: 'The code happens to match reality; the test follows the oracle.' },
+                  { who: [{r:'CI',s:'red'},{r:'I',s:'ng'}], bubble: 'Red. "Bug in the code." The developer changes >= to >.', caption: 'Detection works, and drives the code away from the truth.' } ],
+                exit: 'The test does its job perfectly and the product gets worse. Detection and correctness are different things.' },
+              { name: 'Noise', lamp: 'mixed',
+                panels: [
+                  { who: [{r:'O',s:'ng'}], bubble: 'Free shipping when the total is more than 10,000 yen.', caption: 'Same wrong oracle.' },
+                  { who: [{r:'I',s:'ng'},{r:'T',s:'ng'}], bubble: 'Both written from memory, each drifting from the spec in its own way.', caption: 'Neither is faithful to the oracle.' },
+                  { who: [{r:'CI',s:'mixed'}], bubble: 'Green if they drifted the same way, red if not.', caption: 'With a wrong reference point, neither colour means anything.' } ],
+                exit: 'Nothing here can be reasoned about until the oracle is fixed.' }
+            ],
+            [ // correct oracle
+              { name: 'The goal state', lamp: 'green',
+                panels: [
+                  { who: [{r:'O',s:'ok'}], bubble: 'Free shipping at 10,000 yen or more.', caption: 'The rule is stated correctly.' },
+                  { who: [{r:'I',s:'ok'},{r:'T',s:'ok'}], bubble: 'Code: total >= 10000. Test: 10,000 is free, 9,999 is charged.', caption: 'Both faithful.' },
+                  { who: [{r:'CI',s:'green'},{r:'CUST',s:'ok'}], bubble: 'Green, and the customer gets free shipping.', caption: 'Where every other quadrant is trying to go.' } ],
+                exit: 'In the ORANGE domain (loop-free, finitely branched code) the derived result table lands here directly: implementation and test are fixed at once from the code.' },
+              { name: 'False positive', lamp: 'red',
+                panels: [
+                  { who: [{r:'O',s:'ok'}], bubble: 'Free shipping at 10,000 yen or more.', caption: 'Correct oracle.' },
+                  { who: [{r:'I',s:'ok'},{r:'T',s:'ng'}], bubble: 'Code: total >= 10000. Test: 10,000 is charged (a slip).', caption: 'The code is right; the test is wrong.' },
+                  { who: [{r:'CI',s:'red'},{r:'I',s:'ok'}], bubble: 'Red. "The test is the spec" — the developer changes the correct code to >.', caption: 'The accident this quadrant produces: fixing the wrong side.' } ],
+                exit: 'Exit: fix the test. The danger is a discipline that treats the test as the specification.' },
+              { name: 'True positive', lamp: 'red',
+                panels: [
+                  { who: [{r:'O',s:'ok'}], bubble: 'Free shipping at 10,000 yen or more.', caption: 'Correct oracle.' },
+                  { who: [{r:'I',s:'ng'},{r:'T',s:'ok'}], bubble: 'Code: total > 10000 (off by one). Test: 10,000 is free.', caption: 'The code is wrong; the test is right.' },
+                  { who: [{r:'CI',s:'red'},{r:'I',s:'ok'}], bubble: 'Red. The developer fixes > to >=. Green.', caption: 'The textbook story of testing.' } ],
+                exit: 'The only quadrant where the test does its textbook job — one of twelve.' },
+              { name: 'Hidden green', lamp: 'mixed',
+                panels: [
+                  { who: [{r:'O',s:'ok'}], bubble: 'Free shipping at 10,000 yen or more.', caption: 'Correct oracle.' },
+                  { who: [{r:'I',s:'ng'},{r:'T',s:'ng'}], bubble: 'Code: total > 10000. Test: fee >= 0 (always true), or the same misreading.', caption: 'Both wrong, in the same direction.' },
+                  { who: [{r:'CI',s:'green'},{r:'CUST',s:'ng'}], bubble: 'Green. The 10,000-yen customer is charged and nothing fails.', caption: 'A green that hides a defect.' } ],
+                exit: 'Only mutation testing or fault injection exposes this green. Different-direction errors would show red instead.' }
+            ],
+            [ // absent oracle
+              { name: 'Agreement, not truth', lamp: 'green',
+                panels: [
+                  { who: [{r:'O',s:'absent'}], bubble: 'Free shipping over 10,000 yen.', think: true, caption: '"Over": does 10,000 itself count? The owner has not decided.' },
+                  { who: [{r:'I',s:'ok'},{r:'T',s:'ok'}], bubble: 'Code: total >= 10000. Test: 10,000 is free.', caption: 'Both picked the same reading.' },
+                  { who: [{r:'CI',s:'green'}], bubble: 'Green. It means the two agreed — not that either is right.', caption: 'Same training distribution, same guess.' } ],
+                exit: 'This is what "independent tester" experiments measure. The green is a match of interpretations, not evidence of correctness.' },
+              { name: 'Ambiguity surfaced', lamp: 'red',
+                panels: [
+                  { who: [{r:'O',s:'absent'}], bubble: 'Free shipping over 10,000 yen.', think: true, caption: 'Undecided oracle.' },
+                  { who: [{r:'I',s:'ok'},{r:'T',s:'ng'}], bubble: 'Code: total >= 10000. Test: 10,000 is charged.', caption: 'Two readings of the same sentence.' },
+                  { who: [{r:'CI',s:'red'},{r:'O',s:'absent'}], bubble: 'Red. Not a defect — a question: "Owner, does 10,000 count?"', caption: 'The red is a detector of ambiguity.' } ],
+                exit: 'The right move is a question to the oracle, not a fix. Whoever "fixes" it alone is guessing.' },
+              { name: 'Ambiguity surfaced', lamp: 'red',
+                panels: [
+                  { who: [{r:'O',s:'absent'}], bubble: 'Free shipping over 10,000 yen.', think: true, caption: 'Undecided oracle.' },
+                  { who: [{r:'I',s:'ng'},{r:'T',s:'ok'}], bubble: 'Code: total > 10000. Test: 10,000 is free.', caption: 'The mirror image of the previous quadrant.' },
+                  { who: [{r:'CI',s:'red'},{r:'O',s:'absent'}], bubble: 'Red. Neither side can decide who is right.', caption: 'The row is served to the adjudicator.' } ],
+                exit: 'Same as its neighbour: the disagreement is the useful output. A derived result table shows the row so the owner can rule on it.' },
+              { name: 'Same interpreter', lamp: 'green',
+                panels: [
+                  { who: [{r:'O',s:'absent'}], bubble: 'Free shipping over 10,000 yen.', think: true, caption: 'Undecided oracle.' },
+                  { who: [{r:'I',s:'ng'},{r:'T',s:'ng'}], bubble: 'One model writes both the code and the test. Both read it as > 10000.', caption: 'Same author, same reading.' },
+                  { who: [{r:'CI',s:'green'},{r:'CUST',s:'ng'}], bubble: 'Green. The 10,000-yen customer is charged. Nobody asked.', caption: 'The guess is baked into both sides.' } ],
+                exit: 'The same-interpreter problem: when one model writes implementation and test, this is the most likely landing spot. Green until the owner happens to look.' }
+            ]
+        ];
+
+        // ---------- drawing ----------
+        const COLOR = { ok: '#2f9e44', ng: '#c92a2a', absent: '#868e96', green: '#40c057', red: '#e03131' };
+
+        function dot(letter, state, size) {
+            const d = document.createElement('span');
+            d.className = 'dot ' + state;
+            d.textContent = state === 'absent' ? '?' : letter;
+            if (size) { d.style.width = d.style.height = size + 'px'; d.style.fontSize = (size * 0.32) + 'px'; }
+            return d;
+        }
+        function lampEl(kind) { const l = document.createElement('span'); l.className = 'lamp ' + kind; return l; }
+
+        // Small SVG figure: coloured head with the letter, stick body. CI = lamp on a pole. CUST = customer with a receipt.
+        function figure(a, x) {
+            const s = a.s;
+            if (a.r === 'CI') {
+                const fill = s === 'mixed' ? 'url(#mixed)' : COLOR[s];
+                return `<g transform="translate(${x},0)">
+                    <rect x="14" y="46" width="12" height="46" fill="#495057"/>
+                    <rect x="2" y="6" width="36" height="42" rx="6" fill="#212529"/>
+                    <circle cx="20" cy="27" r="13" fill="${fill}" stroke="#000" stroke-opacity="0.35"/>
+                    <text x="20" y="102" text-anchor="middle" font-size="9" fill="#495057" font-family="Segoe UI, sans-serif">CI</text></g>`;
+            }
+            if (a.r === 'CUST') {
+                const face = s === 'ok' ? 'M13 26 q7 6 14 0' : 'M13 29 q7 -6 14 0';
+                return `<g transform="translate(${x},0)">
+                    <circle cx="20" cy="22" r="13" fill="#fff" stroke="#495057" stroke-width="2"/>
+                    <circle cx="15" cy="20" r="1.6" fill="#495057"/><circle cx="25" cy="20" r="1.6" fill="#495057"/>
+                    <path d="${face}" stroke="#495057" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    <line x1="20" y1="35" x2="20" y2="66" stroke="#495057" stroke-width="3" stroke-linecap="round"/>
+                    <line x1="20" y1="44" x2="6" y2="56" stroke="#495057" stroke-width="3" stroke-linecap="round"/>
+                    <line x1="20" y1="44" x2="34" y2="52" stroke="#495057" stroke-width="3" stroke-linecap="round"/>
+                    <rect x="30" y="46" width="14" height="18" fill="#fff" stroke="#495057" stroke-width="1.5"/>
+                    <line x1="33" y1="51" x2="41" y2="51" stroke="#495057"/><line x1="33" y1="55" x2="41" y2="55" stroke="#495057"/><line x1="33" y1="59" x2="39" y2="59" stroke="${s === 'ok' ? COLOR.ok : COLOR.ng}" stroke-width="2"/>
+                    <line x1="20" y1="66" x2="11" y2="90" stroke="#495057" stroke-width="3" stroke-linecap="round"/>
+                    <line x1="20" y1="66" x2="29" y2="90" stroke="#495057" stroke-width="3" stroke-linecap="round"/>
+                    <text x="20" y="102" text-anchor="middle" font-size="9" fill="#495057" font-family="Segoe UI, sans-serif">customer</text></g>`;
+            }
+            const absent = s === 'absent';
+            const head = absent
+                ? `<circle cx="20" cy="22" r="13" fill="#fff" stroke="${COLOR.absent}" stroke-width="2.5" stroke-dasharray="4 3"/><text x="20" y="27" text-anchor="middle" font-size="14" font-weight="700" fill="${COLOR.absent}" font-family="Segoe UI, sans-serif">?</text>`
+                : `<circle cx="20" cy="22" r="13" fill="${COLOR[s]}"/><text x="20" y="27" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" font-family="Segoe UI, sans-serif">${a.r}</text>`;
+            const arms = a.r === 'I' ? '<line x1="20" y1="44" x2="4" y2="50" stroke="#495057" stroke-width="3" stroke-linecap="round"/><line x1="20" y1="44" x2="36" y2="50" stroke="#495057" stroke-width="3" stroke-linecap="round"/><rect x="0" y="50" width="40" height="6" rx="1" fill="#adb5bd"/>'
+                       : a.r === 'T' ? '<line x1="20" y1="44" x2="8" y2="58" stroke="#495057" stroke-width="3" stroke-linecap="round"/><line x1="20" y1="44" x2="34" y2="40" stroke="#495057" stroke-width="3" stroke-linecap="round"/><path d="M32 36 l4 5 l7 -9" stroke="' + (s === 'ng' ? COLOR.ng : COLOR.ok) + '" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+                       : '<line x1="20" y1="44" x2="6" y2="58" stroke="#495057" stroke-width="3" stroke-linecap="round"/><line x1="20" y1="44" x2="36" y2="36" stroke="#495057" stroke-width="3" stroke-linecap="round"/>';
+            const role = a.r === 'O' ? 'owner' : a.r === 'I' ? 'developer' : 'tester';
+            return `<g transform="translate(${x},0)">${head}
+                <line x1="20" y1="35" x2="20" y2="66" stroke="#495057" stroke-width="3" stroke-linecap="round"/>${arms}
+                <line x1="20" y1="66" x2="11" y2="90" stroke="#495057" stroke-width="3" stroke-linecap="round"/>
+                <line x1="20" y1="66" x2="29" y2="90" stroke="#495057" stroke-width="3" stroke-linecap="round"/>
+                <text x="20" y="102" text-anchor="middle" font-size="9" fill="#495057" font-family="Segoe UI, sans-serif">${role}</text></g>`;
+        }
+        function stageSvg(who) {
+            const w = who.length * 44 + 4;
+            const defs = '<defs><linearGradient id="mixed" x1="0" x2="1"><stop offset="0.5" stop-color="#40c057"/><stop offset="0.5" stop-color="#e03131"/></linearGradient></defs>';
+            return `<svg viewBox="0 0 ${w} 106" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${defs}${who.map((a, i) => figure(a, 4 + i * 44)).join('')}</svg>`;
+        }
+
+        // ---------- grid ----------
+        const quad = document.getElementById('quad');
+        const corner = document.createElement('div'); corner.className = 'corner'; corner.textContent = 'oracle ＼ impl. · test';
+        quad.appendChild(corner);
+        COLS.forEach(c => {
+            const h = document.createElement('div'); h.className = 'hd'; h.setAttribute('role', 'columnheader');
+            const d = document.createElement('div'); d.className = 'dots'; d.appendChild(dot('I', c.i)); d.appendChild(dot('T', c.t));
+            h.appendChild(d); h.appendChild(document.createTextNode(c.label));
+            quad.appendChild(h);
+        });
+        const cells = [];
+        ROWS.forEach((r, ri) => {
+            const rh = document.createElement('div'); rh.className = 'rh'; rh.setAttribute('role', 'rowheader');
+            rh.appendChild(dot('O', r.o));
+            const lb = document.createElement('div'); lb.textContent = r.label; rh.appendChild(lb);
+            const sb = document.createElement('div'); sb.className = 'sub'; sb.textContent = r.sub; rh.appendChild(sb);
+            quad.appendChild(rh);
+            COLS.forEach((c, ci) => {
+                const sc = SCENES[ri][ci];
+                const b = document.createElement('button');
+                b.type = 'button'; b.className = 'cell' + (sc.blind ? ' blind' : ''); b.setAttribute('role', 'gridcell');
+                b.setAttribute('aria-label', r.label + ', ' + c.label + ': ' + sc.name);
+                const d = document.createElement('div'); d.className = 'dots';
+                d.appendChild(dot('O', r.o)); d.appendChild(dot('I', c.i)); d.appendChild(dot('T', c.t));
+                b.appendChild(d);
+                const sg = document.createElement('span'); sg.className = 'signal';
+                sg.appendChild(lampEl(sc.lamp)); sg.appendChild(document.createTextNode(sc.lamp === 'mixed' ? 'green / red' : sc.lamp));
+                b.appendChild(sg);
+                const nm = document.createElement('div'); nm.className = 'name'; nm.textContent = sc.name; b.appendChild(nm);
+                if (sc.blind) { const t = document.createElement('span'); t.className = 'tag'; t.textContent = 'least noticed'; b.appendChild(t); }
+                b.addEventListener('mouseenter', () => show(ri, ci));
+                b.addEventListener('focus', () => show(ri, ci));
+                b.addEventListener('click', () => show(ri, ci));
+                quad.appendChild(b);
+                cells.push(b);
+            });
+        });
+
+        // ---------- comic ----------
+        function show(ri, ci) {
+            cells.forEach((b, k) => b.classList.toggle('active', k === ri * 4 + ci));
+            const r = ROWS[ri], c = COLS[ci], sc = SCENES[ri][ci];
+            const dd = document.getElementById('comic-dots'); dd.replaceChildren();
+            dd.appendChild(dot('O', r.o)); dd.appendChild(dot('I', c.i)); dd.appendChild(dot('T', c.t));
+            document.getElementById('comic-title').textContent = sc.name;
+            document.getElementById('comic-sub').textContent = r.label + ' · ' + c.label;
+            const ps = document.getElementById('panels'); ps.replaceChildren();
+            sc.panels.forEach((p, i) => {
+                const el = document.createElement('div'); el.className = 'panel';
+                const st = document.createElement('div'); st.className = 'stage'; st.innerHTML = stageSvg(p.who); el.appendChild(st);
+                const tx = document.createElement('div'); tx.className = 'text';
+                const n = document.createElement('div'); n.className = 'num'; n.textContent = ['1 · THE RULE', '2 · BUILD AND TEST', '3 · WHAT HAPPENS'][i]; tx.appendChild(n);
+                const bb = document.createElement('div'); bb.className = 'bubble' + (p.think ? ' think' : ''); bb.textContent = p.bubble; tx.appendChild(bb);
+                const cp = document.createElement('div'); cp.className = 'caption'; cp.textContent = p.caption; tx.appendChild(cp);
+                el.appendChild(tx);
+                ps.appendChild(el);
+            });
+            document.getElementById('comic-exit').textContent = sc.exit;
+        }
+        show(0, 0);
+
+        document.getElementById('hamburger').addEventListener('click', function () {
+            document.getElementById('sidebar').classList.toggle('active');
+        });
+    </script>
+</body>
+</html>
