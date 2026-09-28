@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>テストの象限 — human sandbox</title>
-    <meta name="description" content="テストの象限。オラクル・実装・テストのそれぞれが正か誤か(オラクルは不在もあり得る)で分け、各象限で緑や赤のランプが本当は何を意味するかを示す。象限にマウスを乗せると、その象限の業務シーンがマンガで出る。">
+    <meta name="description" content="テストの象限。オラクル・プロダクション・テストのそれぞれが正か誤か(オラクルは不在もあり得る)で分け、各象限で緑や赤のランプが本当は何を意味するかを示す。象限にマウスを乗せると、その象限の業務シーンがマンガで出る。">
     <link rel="stylesheet" href="css/site.css">
     <style>
         :root {
@@ -14,8 +14,9 @@
             --lamp-green: #40c057;
             --lamp-red: #e03131;
         }
-        .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); gap: 14px; align-items: start; }
-        @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } .comic-card { position: static !important; max-height: none !important; } }
+        .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); gap: 14px; align-items: start; }
+        .layout > * { min-width: 0; }
+        @media (max-width: 1100px) { .layout { grid-template-columns: minmax(0, 1fr); } .comic-card { position: static !important; max-height: none !important; } }
 
         /* ---- toggle ---- */
         .toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 8px; }
@@ -30,7 +31,7 @@
         /* ---- legend ---- */
         .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 0.85rem; margin: 4px 0 12px; align-items: center; }
         .legend .item { display: inline-flex; align-items: center; gap: 6px; }
-        /* 実装・テストは丸(正=白、誤=黒)。オラクルは四角(正=金、誤=さび)。赤・緑は結果のランプだけに使う */
+        /* プロダクション・テストは丸(正=白、誤=黒)。オラクルは四角(正=金、誤=さび)。赤・緑は結果のランプだけに使う */
         .dot { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; font-weight: 700; font-size: 0.8rem; border: 2px solid #212529; flex: none; }
         .dot.ok { background: #fff; color: #212529; }
         .dot.ng { background: #000; color: #fff; border-color: #000; }
@@ -58,16 +59,18 @@
         .cell .dots { display: flex; gap: 5px; }
         .cell .signal { display: inline-flex; align-items: center; gap: 5px; font-size: 0.76rem; font-weight: 700; color: #495057; }
         .cell .name { font-size: 0.82rem; font-weight: 600; line-height: 1.35; }
-        .cell .tag { font-size: 0.74rem; color: #212529; font-weight: 700; line-height: 1.35; }
+        /* 盲点の印: 薄ピンク背景・赤文字の囲み */
+        .cell .tag { display: block; font-size: 0.74rem; color: #c92a2a; background: #ffe3e8; border: 1px solid #f5b5c0; border-radius: 4px; padding: 4px 6px; font-weight: 700; line-height: 1.35; }
         .cell.unthinkable { background: #000; border-color: #000; color: #adb5bd; cursor: default; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; }
         .cell.unthinkable:hover { background: #000; border-color: #000; }
         .corner { background: #f8f9fa; border: 1px solid #dee2e6; font-size: 0.72rem; color: #6c757d; padding: 6px 8px; display: flex; align-items: center; }
+        /* 狭い画面では表を潰さず、横スクロールにする */
         @media (max-width: 700px) {
-            .quad { grid-template-columns: 82px repeat(4, minmax(0, 1fr)); }
-            .cell { min-height: 88px; padding: 6px 5px; }
-            .cell .name { font-size: 0.74rem; }
-            .cell .dots .dot { width: 20px; height: 20px; font-size: 0.68rem; }
-            .quad .hd .dots { display: none; }
+            .quad-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .quad { min-width: 620px; grid-template-columns: 96px repeat(4, minmax(0, 1fr)); }
+            .cell { min-height: 88px; padding: 6px 6px; }
+            .cell .name { font-size: 0.76rem; }
+            .cell .dots .dot { width: 22px; height: 22px; font-size: 0.7rem; }
         }
 
         /* ---- comic ---- */
@@ -76,16 +79,27 @@
         .comic-head .dots { display: flex; gap: 4px; }
         .comic-title { font-weight: 700; font-size: 0.98rem; }
         .comic-sub { font-size: 0.8rem; color: #6c757d; margin-bottom: 10px; }
-        .panel { border: 2px solid #212529; background: #fff; margin-bottom: 8px; display: grid; grid-template-columns: auto 1fr; min-height: 118px; }
-        .panel .stage { border-right: 1px solid #dee2e6; background: #f8f9fa; display: flex; align-items: center; justify-content: center; padding: 6px 6px; }
-        .panel .stage svg { height: 104px; width: auto; display: block; }
-        .panel .text { padding: 6px 10px 8px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-        .panel .num { font-size: 0.7rem; color: #6c757d; font-weight: 700; letter-spacing: 0.04em; }
+        .panel { border: 2px solid #212529; background: #fff; margin-bottom: 8px; padding: 6px 8px 8px; }
+        .panel .num { font-size: 0.7rem; color: #6c757d; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 4px; }
+        /* 1行 = 話者の棒人間(左) + その発言(右)。話者が複数なら縦に並ぶ */
+        .line { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 8px; align-items: center; margin: 2px 0; }
+        .line .stage { display: flex; justify-content: center; }
+        .line .stage svg { height: 76px; width: auto; display: block; }
         .bubble { position: relative; background: #fff; border: 1.5px solid #212529; border-radius: 10px; padding: 6px 9px; font-size: 0.84rem; line-height: 1.45; }
         .bubble::before { content: ""; position: absolute; left: -9px; top: 12px; border: 6px solid transparent; border-right-color: #212529; border-left: 0; }
         .bubble::after { content: ""; position: absolute; left: -6px; top: 13px; border: 5px solid transparent; border-right-color: #fff; border-left: 0; }
         .bubble.think { border-style: dashed; }
-        .caption { font-size: 0.78rem; color: #495057; line-height: 1.45; }
+        .caption { font-size: 0.78rem; color: #495057; line-height: 1.45; margin-top: 4px; }
+        /* 途中から左右に分裂する(赤になる場合 / 緑になる場合) */
+        .split { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+        .branch { border: 2px dashed #212529; padding: 5px 5px 2px; background: #fafafa; min-width: 0; }
+        .branch-head { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 0.78rem; margin: 0 0 6px 2px; }
+        .branch .panel { padding: 5px 5px 6px; margin-bottom: 6px; }
+        .branch .line { grid-template-columns: 40px minmax(0, 1fr); gap: 5px; }
+        .branch .line .stage svg { height: 58px; }
+        .branch .bubble { font-size: 0.74rem; padding: 4px 6px; border-radius: 8px; }
+        .branch .caption { font-size: 0.7rem; }
+        .branch .num { font-size: 0.66rem; }
         .exit { font-size: 0.82rem; margin-top: 4px; padding: 6px 10px; background: #f1f3f5; border-left: 4px solid #212529; line-height: 1.5; }
     </style>
 </head>
@@ -111,7 +125,7 @@
         <div class="header-section">
             <span class="header-title">テスト<span id="qcount">8</span>象限</span>
             <div class="header-sub">
-                テストの結果が何を意味するかは、三者で決まる。<b>オラクル</b>(何が正しい答えかを言う人)、<b>実装</b>、<b>テスト</b>。
+                テストの結果が何を意味するかは、三者で決まる。<b>オラクル</b>(何が正しい答えかを言う人)、<b>プロダクション</b>(実装)、<b>テスト</b>。
                 それぞれが正か誤かで分けると 2×2×2 の 8 象限になる。オラクルには「不在(曖昧・未確定)」もあり得るとすれば 12 象限になる(表示オプション)。
                 象限にマウスを乗せる(タップする)と、右にその象限の業務シーンがマンガで出る。
             </div>
@@ -127,7 +141,7 @@
                     <span class="item"><span class="dot o ok">O</span> 正オラクル</span>
                     <span class="item"><span class="dot o ng">O</span> 誤オラクル</span>
                     <span class="item" id="legend-absent" hidden><span class="dot o absent">?</span> 不在オラクル</span>
-                    <span class="item"><span class="dot ok">I</span> 実装</span>
+                    <span class="item"><span class="dot ok">P</span> プロダクション(実装)</span>
                     <span class="item"><span class="dot ok">T</span> テスト</span>
                     <span class="item"><span class="dot ok">&nbsp;</span> 正</span>
                     <span class="item"><span class="dot ng">&nbsp;</span> 誤</span>
@@ -135,12 +149,12 @@
                     <span class="item"><span class="lamp red"></span> 赤</span>
                     <span class="item"><span class="lamp mixed"></span> 緑または赤</span>
                 </div>
-                <div class="quad" id="quad" role="grid" aria-label="テストの象限"></div>
+                <div class="quad-wrap"><div class="quad" id="quad" role="grid" aria-label="テストの象限"></div></div>
                 <p class="header-sub" style="margin-top:10px">
-                    実装とテストの「正・誤」は<i>オラクルに忠実か</i>で読む。通常の議論は「正オラクル・誤実装・正テスト」の一象限だけを見て
+                    プロダクションとテストの「正・誤」は<i>オラクルに忠実か</i>で読む。通常の議論は「正オラクル・誤実装・正テスト」の一象限だけを見て
                     「テストが欠陥を見つける」と語るが、それは象限の一つにすぎない。<b>誤オラクルの行の左端(盲点)が一番意識されない</b>。
                     盲点の２位は「正オラクル・誤実装・誤テスト」。同一解釈者が同じ方向に誤ると緑のまま欠陥が残り、露出させるのはミューテーションか欠陥の注入だけである。
-                    <span id="absent-note" hidden>不在オラクルの行では、実装とテストのどちらが正でどちらが誤かを決める参照点が無い。片方だけが正という中央の二つは考え得ない(unthinkable)。</span>
+                    <span id="absent-note" hidden>不在オラクルの行では、プロダクションとテストのどちらが正でどちらが誤かを決める参照点が無い。片方だけが正という中央の二つは考え得ない(unthinkable)。</span>
                 </p>
             </div>
 
@@ -159,7 +173,7 @@
             <div class="section-title"><span class="accent-bar"></span>例に使っている業務</div>
             <p>
                 通販サイトの送料ルール。シーンの中では、本当の業務ルールは<b>「10,000円以上で送料無料」</b>である。
-                オラクルはルールをチームに伝えるオーナー、実装は開発者のコード、テストは 10,000 円ちょうどの注文に対する検証。
+                オラクルはルールをチームに伝えるオーナー、プロダクションは開発者のコード、テストは 10,000 円ちょうどの注文に対する検証。
                 ランプは CI の結果。象限ごとに変わるのは、誰が間違っているかと、ランプがそれを教えてくれるかどうかである。
             </p>
             <p class="header-sub">
@@ -179,93 +193,113 @@
             { key: 'absent',  o: 'absent', label: '不在オラクル', sub: '曖昧・未確定', optional: true }
         ];
         const COLS = [
-            { i: 'ok', t: 'ok', label: '正実装・正テスト' },
-            { i: 'ok', t: 'ng', label: '正実装・誤テスト' },
-            { i: 'ng', t: 'ok', label: '誤実装・正テスト' },
-            { i: 'ng', t: 'ng', label: '誤実装・誤テスト' }
+            { p: 'ok', t: 'ok', label: '正実装・正テスト' },
+            { p: 'ok', t: 'ng', label: '正実装・誤テスト' },
+            { p: 'ng', t: 'ok', label: '誤実装・正テスト' },
+            { p: 'ng', t: 'ng', label: '誤実装・誤テスト' }
         ];
 
-        // シーン: name, lamp, panels[] (2コマ以上、何コマでも) = {h:見出し, who:[登場人物], bubble, think?, caption}, exit
-        // 登場人物: {r:'O'|'I'|'T'|'CI'|'CUST', s:'ok'|'ng'|'absent'|'green'|'red'|'mixed', label?}
-        // null のセルは unthinkable(黒)
-        const RULE_WRONG   = { h: 'ルール', who: [{r:'O',s:'ng'}], bubble: '合計が 10,000 円を超えたら送料無料です。', caption: 'オーナーの記憶違い。本当のルールは「10,000 円以上」。' };
-        const RULE_OK      = { h: 'ルール', who: [{r:'O',s:'ok'}], bubble: '10,000 円以上で送料無料です。', caption: 'ルールは正しく伝わっている。' };
-        const RULE_ABSENT  = { h: 'ルール', who: [{r:'O',s:'absent'}], bubble: 'だいたい 1 万円を超えたら送料無料でいいよ。', think: true, caption: '「超えたら」は 1 万円ちょうどを含むのか。オーナーはまだ決めていない。' };
+        // 登場人物: O=オーナー(オラクル) P=開発者(プロダクション) T=テスター CI=ランプ CUST=お客様
+        // コマ: { h:見出し, lines:[{who:{r,s,label?}, say:'…', think?}], caption }
+        //   1行 = 話者1人 + その発言。話者が複数なら縦に並ぶ。
+        // 分裂: { split:[ {lamp:'red', title:'…', panels:[…]}, {lamp:'green', title:'…', panels:[…]} ] } — 左右2列になる
+        const O_OK = {r:'O', s:'ok'}, O_NG = {r:'O', s:'ng'}, O_AB = {r:'O', s:'absent'};
+        const P_OK = {r:'P', s:'ok'}, P_NG = {r:'P', s:'ng'}, T_OK = {r:'T', s:'ok'}, T_NG = {r:'T', s:'ng'};
+        const CI_G = {r:'CI', s:'green'}, CI_R = {r:'CI', s:'red'}, MUT = {r:'CI', s:'red', label:'変異'};
+        const CU_OK = {r:'CUST', s:'ok'}, CU_NG = {r:'CUST', s:'ng'};
+
+        const RULE_OK     = { h: 'ルール', lines: [{who: O_OK, say: '10,000 円以上で送料無料です。'}], caption: 'ルールは正しく伝わっている。' };
+        const RULE_WRONG  = { h: 'ルール', lines: [{who: O_NG, say: '合計が 10,000 円を超えたら送料無料です。'}], caption: 'オーナーの記憶違い。本当のルールは「10,000 円以上」。' };
+        const RULE_ABSENT = { h: 'ルール', lines: [{who: O_AB, say: 'だいたい 1 万円を超えたら送料無料でいいよ。', think: true}], caption: '「超えたら」は 1 万円ちょうどを含むのか。オーナーはまだ決めていない。' };
 
         const SCENES_BY_KEY = {
-            wrong: [ // 誤オラクル
-              { name: '', blind: true, tag: '盲点１位！ 一番意識されない', lamp: 'green',
-                panels: [
-                  RULE_WRONG,
-                  { h: '実装', who: [{r:'I',s:'ok'}], bubble: 'total > 10000 なら無料。', caption: '言われたとおりに書く。' },
-                  { h: 'テスト', who: [{r:'T',s:'ok'}], bubble: '10,000 円ちょうどは送料がかかる、と確認。', caption: 'こちらも言われたとおり。' },
-                  { h: '結果', who: [{r:'CI',s:'green'},{r:'CUST',s:'ng'}], bubble: '全部緑。10,000 円ちょうどのお客様に送料 500 円。誰も気づかない。', caption: '誤りは仕様ごと固定される。テストを増やしても、実装を直しても、出てこない。' } ],
-                exit: '出口はオラクルとの対話だけ。期待値を直すと「正オラクル・正実装・正テスト」へ移る。この遷移はテスト工程の外で起きる。だから一番意識されない。' },
-              { name: '赤がテストの誤りにされる', lamp: 'red',
-                panels: [
-                  RULE_WRONG,
-                  { h: '実装とテスト', who: [{r:'I',s:'ok'},{r:'T',s:'ng'}], bubble: '実装: total > 10000。テスト: 10,000 円ちょうどは無料、と書いた。', caption: 'テスターは現場の運用を覚えていて、逆を書く。オラクル基準では「誤テスト」。' },
-                  { h: '赤', who: [{r:'CI',s:'red'},{r:'O',s:'ng'}], bubble: '赤。「テストが仕様と違う。テストを直せ」', caption: '赤は本物の信号だが、参照点が誤っているので、テストの間違いとして処理される。' },
-                  { h: '結果', who: [{r:'CI',s:'green'},{r:'CUST',s:'ng'}], bubble: 'テストを誤オラクル側に書き直して緑。バグは残る。', caption: '一度出た正しい赤が、手続きで消される。' } ],
-                exit: '出口はやはりオラクル。テストを「直す」前に、参照点を疑う必要がある。' },
-              { name: '誤った答えへ直される', lamp: 'red',
-                panels: [
-                  RULE_WRONG,
-                  { h: '実装とテスト', who: [{r:'I',s:'ng'},{r:'T',s:'ok'}], bubble: '実装: total >= 10000(開発者は店の運用を知っている)。テスト: 10,000 円ちょうどは有料。', caption: '実装は偶然、現実に合っている。テストはオラクルに忠実。' },
-                  { h: '赤', who: [{r:'CI',s:'red'},{r:'I',s:'ng'}], bubble: '赤。「コードのバグだ」。開発者は >= を > に直す。', caption: 'テストは教科書どおりに働く。' },
-                  { h: '結果', who: [{r:'CI',s:'green'},{r:'CUST',s:'ng'}], bubble: '緑。10,000 円ちょうどのお客様に送料がかかるようになった。', caption: '検出は機能し、コードを真実から遠ざけた。' } ],
-                exit: '検出と正しさは別のもの。テストが完璧に働いて、製品が悪くなる象限。' },
-              { name: '雑音', lamp: 'mixed',
-                panels: [
-                  RULE_WRONG,
-                  { h: '実装とテストと結果', who: [{r:'I',s:'ng'},{r:'T',s:'ng'},{r:'CI',s:'mixed'}], bubble: '二人とも記憶で書き、別々の方向に仕様からずれた。同じ方向なら緑、違えば赤。', caption: '参照点が誤っている以上、どちらの色も意味を持たない。' } ],
-                exit: 'オラクルを直すまで、ここでは何も推論できない。' }
-            ],
             correct: [ // 正オラクル
               { name: 'あるべき状態', lamp: 'green',
                 panels: [
                   RULE_OK,
-                  { h: '実装とテスト', who: [{r:'I',s:'ok'},{r:'T',s:'ok'}], bubble: '実装: total >= 10000。テスト: 10,000 円は無料、9,999 円は有料。', caption: 'どちらも忠実。' },
-                  { h: '結果', who: [{r:'CI',s:'green'},{r:'CUST',s:'ok'}], bubble: '緑。お客様は送料無料。', caption: '他の全ての象限が目指す場所。' } ],
-                exit: 'ORANGE の成立域(無反復有限分岐)では、結果表の導出でここへ直行する。実装とテストの正誤が、コードから同時に固定される。' },
-              { name: '偽陽性', lamp: 'red',
+                  { h: '実装とテスト', lines: [{who: P_OK, say: 'total >= 10000 なら無料、と書いた。'}, {who: T_OK, say: '10,000 円は無料、9,999 円は有料、と確認する。'}], caption: 'どちらも忠実。' },
+                  { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_OK, say: '送料無料で届いた。'}], caption: '他の全ての象限が目指す場所。' } ],
+                exit: 'ORANGE の成立域(無反復有限分岐)では、結果表の導出でここへ直行する。プロダクションとテストの正誤が、コードから同時に固定される。' },
+              { name: 'False Positive', lamp: 'red',
                 panels: [
                   RULE_OK,
-                  { h: '実装とテスト', who: [{r:'I',s:'ok'},{r:'T',s:'ng'}], bubble: '実装: total >= 10000。テスト: 10,000 円は有料(書き間違い)。', caption: 'コードは正しく、テストが誤り。' },
-                  { h: '赤', who: [{r:'CI',s:'red'},{r:'I',s:'ok'}], bubble: '赤。「テストは仕様だ」——開発者が正しいコードを > に変える。', caption: 'この象限が生む事故。直す側を間違える。' },
-                  { h: '結果', who: [{r:'CI',s:'green'},{r:'CUST',s:'ng'}], bubble: '緑になった。正しかったコードが壊れ、お客様に送料がかかる。', caption: '緑は回復したが、製品は悪くなった。' } ],
+                  { h: '実装とテスト', lines: [{who: P_OK, say: 'total >= 10000 なら無料、と書いた。'}, {who: T_NG, say: '10,000 円は有料、と書いてしまった(書き間違い)。'}], caption: 'コードは正しく、テストが誤り。' },
+                  { h: '赤', lines: [{who: CI_R, say: '赤。'}, {who: P_OK, say: 'テストは仕様だ。コードを > に直そう…'}], caption: 'この象限が生む事故。直す側を間違える。' },
+                  { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_NG, say: '10,000 円なのに送料を取られた。'}], caption: '緑は回復したが、製品は悪くなった。' } ],
                 exit: '出口はテストの修正。危険なのは「テストが仕様である」と信じる規律。' },
-              { name: '真陽性', lamp: 'red',
+              { name: 'True Positive(狙い通り)', lamp: 'red',
                 panels: [
                   RULE_OK,
-                  { h: '実装とテスト', who: [{r:'I',s:'ng'},{r:'T',s:'ok'}], bubble: '実装: total > 10000(境界を一つ間違えた)。テスト: 10,000 円は無料。', caption: 'コードが誤り、テストが正しい。' },
-                  { h: '赤', who: [{r:'CI',s:'red'},{r:'I',s:'ng'}], bubble: '赤。開発者が > を >= に直す。', caption: 'テストが本来の職務を果たす。' },
-                  { h: '結果', who: [{r:'CI',s:'green'},{r:'CUST',s:'ok'}], bubble: '緑。お客様は送料無料。', caption: 'テストの教科書的な物語。' } ],
+                  { h: '実装とテスト', lines: [{who: P_NG, say: 'total > 10000 なら無料(境界を一つ間違えた)。'}, {who: T_OK, say: '10,000 円は無料、と確認する。'}], caption: 'コードが誤り、テストが正しい。' },
+                  { h: '赤', lines: [{who: CI_R, say: '赤。'}, {who: P_NG, say: '境界の間違いだ。>= に直す。'}], caption: 'テストが本来の職務を果たす。' },
+                  { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_OK, say: '送料無料で届いた。'}], caption: 'テストの教科書的な物語。' } ],
                 exit: 'テストが本来の職務を果たす唯一の象限。8 つのうちの 1 つ(不在の行を含めても 12 のうちの 1 つ)にすぎない。' },
-              { name: '', blind: true, tag: '盲点２位！ もし緑(同一解釈者による)として出てしまったら', lamp: 'mixed',
+              { name: '', tag: '盲点２位！ もし緑(同一解釈者による)として出てしまったら', lamp: 'mixed',
                 panels: [
                   RULE_OK,
-                  { h: '実装とテスト', who: [{r:'I',s:'ng'},{r:'T',s:'ng'}], bubble: '実装: total > 10000。テスト: fee >= 0(常に真)、または実装と同じ読み違い。', caption: '両方が同じ方向に誤っている。同一解釈者(同じ書き手・同じ読み違い)が緑への入口になる。' },
-                  { h: '結果', who: [{r:'CI',s:'green'},{r:'CUST',s:'ng'}], bubble: '緑。10,000 円のお客様に送料がかかり、何も落ちない。', caption: '欠陥を隠す緑。' },
-                  { h: 'ミューテーション', who: [{r:'CI',s:'red',label:'変異'}], bubble: 'コードの > を >= に変えてもテストは緑のまま。生存ミュータントとして露出する。', caption: 'この緑を露出させるのは、ミューテーションか欠陥の注入だけ。' },
-                  { h: 'その後', who: [{r:'T',s:'ok'},{r:'I',s:'ok'}], bubble: 'テストを 10,000 円ちょうどで書き直し、実装も直す。', caption: '露出して初めて直せる。' } ],
-                exit: '同方向の誤りは緑、別方向なら赤。緑のまま残る方が危険で、通常のテスト工程からは見えない。' }
+                  { h: '実装とテスト', lines: [{who: P_NG, say: 'total > 10000 なら無料(境界を一つ間違えた)。'}, {who: T_NG, say: 'fee >= 0 を確認(常に真)。または同じ読み違いで、10,000 円は有料、と書く。'}], caption: '両方が誤っている。向きが違うか、同じか。' },
+                  { split: [
+                    { lamp: 'red', title: '別方向なら赤', panels: [
+                      { h: '赤', lines: [{who: CI_R, say: '赤。'}, {who: T_NG, say: 'テストは 10,000 円が無料と言っている。'}, {who: P_NG, say: 'コードは有料にしている。'}], caption: '向きが違えば赤が立ち、どちらかが疑われる。' },
+                      { h: '結果', lines: [{who: P_OK, say: '見直して両方直した。'}, {who: CI_G, say: '緑。'}], caption: '赤が出れば気づける。' } ] },
+                    { lamp: 'green', title: '同方向なら緑(同一解釈者)', panels: [
+                      { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_NG, say: '10,000 円なのに送料を取られた。'}], caption: '欠陥を隠す緑。誰も気づかない。' },
+                      { h: 'ミューテーション', lines: [{who: MUT, say: '> を >= に変えてもテストは緑のまま。生存ミュータント。'}], caption: '露出させるのはミューテーションか欠陥の注入だけ。' },
+                      { h: 'その後', lines: [{who: T_OK, say: '10,000 円ちょうどで書き直した。'}, {who: P_OK, say: '>= に直した。'}], caption: '露出して初めて直せる。' } ] } ] } ],
+                exit: '同方向の誤りは緑、別方向なら赤。緑のまま残る側が盲点２位で、通常のテスト工程からは見えない。' }
+            ],
+            wrong: [ // 誤オラクル
+              { name: '', tag: '盲点１位！ 一番意識されない', lamp: 'green',
+                panels: [
+                  RULE_WRONG,
+                  { h: '実装', lines: [{who: P_OK, say: 'total > 10000 なら無料、と書いた。'}], caption: '言われたとおりに書く。' },
+                  { h: 'テスト', lines: [{who: T_OK, say: '10,000 円ちょうどは送料がかかる、と確認する。'}], caption: 'こちらも言われたとおり。' },
+                  { h: '結果', lines: [{who: CI_G, say: '全部緑。'}, {who: CU_NG, say: '10,000 円ちょうどなのに送料 500 円…'}], caption: '誰も気づかない。誤りは仕様ごと固定される。テストを増やしても、実装を直しても、出てこない。' } ],
+                exit: '出口はオラクルとの対話だけ。期待値を直すと「正オラクル・正実装・正テスト」へ移る。この遷移はテスト工程の外で起きる。だから一番意識されない。' },
+              { name: '赤がテストの誤りにされる', lamp: 'red',
+                panels: [
+                  RULE_WRONG,
+                  { h: '実装とテスト', lines: [{who: P_OK, say: 'total > 10000 なら無料、と書いた。'}, {who: T_NG, say: '10,000 円ちょうどは無料、と書く(現場の運用を覚えている)。'}], caption: 'オラクル基準では「誤テスト」。' },
+                  { h: '赤', lines: [{who: CI_R, say: '赤。'}, {who: O_NG, say: 'テストが仕様と違う。テストを直せ。'}], caption: '赤は本物の信号だが、参照点が誤っているので、テストの間違いとして処理される。' },
+                  { h: '結果', lines: [{who: T_OK, say: '10,000 円は有料、に書き直した。'}, {who: CI_G, say: '緑。'}], caption: 'バグは残る。一度出た正しい赤が、手続きで消される。' } ],
+                exit: '出口はやはりオラクル。テストを「直す」前に、参照点を疑う必要がある。' },
+              { name: '誤った答えへ直される', lamp: 'red',
+                panels: [
+                  RULE_WRONG,
+                  { h: '実装とテスト', lines: [{who: P_NG, say: 'total >= 10000 なら無料(店の運用を知っている)。'}, {who: T_OK, say: '10,000 円ちょうどは有料、と確認する。'}], caption: '実装は偶然、現実に合っている。テストはオラクルに忠実。' },
+                  { h: '赤', lines: [{who: CI_R, say: '赤。'}, {who: P_NG, say: 'コードのバグか。>= を > に直す。'}], caption: 'テストは教科書どおりに働く。' },
+                  { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_NG, say: '10,000 円ちょうどなのに送料 500 円…'}], caption: '検出は機能し、コードを真実から遠ざけた。' } ],
+                exit: '検出と正しさは別のもの。テストが完璧に働いて、製品が悪くなる象限。' },
+              { name: '雑音', lamp: 'mixed',
+                panels: [
+                  RULE_WRONG,
+                  { h: '実装とテスト', lines: [{who: P_NG, say: '記憶で書いた。'}, {who: T_NG, say: '記憶で書いた。'}], caption: '二人とも仕様からずれた。向きが違うか、同じか。' },
+                  { split: [
+                    { lamp: 'red', title: '別方向なら赤', panels: [
+                      { h: '結果', lines: [{who: CI_R, say: '赤。'}], caption: '参照点が誤っている以上、どちらを直すべきかは決められない。' } ] },
+                    { lamp: 'green', title: '同方向なら緑', panels: [
+                      { h: '結果', lines: [{who: CI_G, say: '緑。'}], caption: '同じ方向にずれただけ。この緑にも意味は無い。' } ] } ] } ],
+                exit: 'オラクルを直すまで、ここでは何も推論できない。' }
             ],
             absent: [ // 不在オラクル(表示オプション)
               { name: '一致であって正しさではない', lamp: 'green',
                 panels: [
                   RULE_ABSENT,
-                  { h: '実装とテスト', who: [{r:'I',s:'ok'},{r:'T',s:'ok'}], bubble: '実装: total >= 10000。テスト: 10,000 円は無料。', caption: '二人とも同じ読みを選んだ。' },
-                  { h: '結果', who: [{r:'CI',s:'green'}], bubble: '緑。二人の読みが一致しただけで、どちらが正しいかは分からない。', caption: '同じ訓練分布、同じ推測。' } ],
+                  { h: '実装とテスト', lines: [{who: P_OK, say: 'total >= 10000 と読んだ。'}, {who: T_OK, say: '10,000 円は無料、と読んだ。'}], caption: '二人とも同じ読みを選んだ。' },
+                  { h: '結果', lines: [{who: CI_G, say: '緑。'}], caption: '二人の読みが一致しただけで、どちらが正しいかは分からない。同じ訓練分布、同じ推測。' } ],
                 exit: '「独立したテスター」の実験が測っているのはこの緑。解釈の一致であって、正しさの証拠ではない。' },
               null,
               null,
               { name: '曖昧なスタートから同一解釈者ムーブ → 緑', lamp: 'mixed',
                 panels: [
                   RULE_ABSENT,
-                  { h: '同一解釈者ムーブ', who: [{r:'I',s:'ng'},{r:'T',s:'ng'}], bubble: '一つのモデルがコードとテストの両方を書く。両方が > 10000 と読んだ。', caption: '同じ書き手、同じ読み。曖昧さは決着せず、一つの読みに畳まれる。' },
-                  { h: '結果', who: [{r:'CI',s:'green'},{r:'CUST',s:'ng'}], bubble: '緑。1 万円ちょうどのお客様に送料がかかる。誰も聞かなかった。', caption: '推測がコードとテストの両方に焼き込まれる。' },
-                  { h: '別の道', who: [{r:'O',s:'absent'},{r:'I',s:'ng'}], bubble: '結果表なら「10,000 → 有料」の行がそのまま出る。「これでいいですか」とオーナーに聞ける。', caption: '推測が行として露出し、裁定される。' } ],
+                  { h: '同一解釈者ムーブ', lines: [{who: P_NG, say: '一つのモデルがコードを書く。> 10000 と読んだ。'}, {who: T_NG, say: '同じモデルがテストも書く。同じく > 10000。'}], caption: '同じ書き手、同じ読み。曖昧さは決着せず、一つの読みに畳まれる。' },
+                  { split: [
+                    { lamp: 'red', title: '別々の読み違いなら赤', panels: [
+                      { h: '赤', lines: [{who: CI_R, say: '赤。'}, {who: O_AB, say: 'どっちが正しいの? 決めてなかった…', think: true}], caption: '赤は欠陥ではなく、曖昧さの露出。オーナーへの質問になる。' } ] },
+                    { lamp: 'green', title: '同一解釈者なら緑', panels: [
+                      { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_NG, say: '1 万円ちょうどなのに送料…'}], caption: '誰も聞かなかった。推測がコードとテストの両方に焼き込まれる。' },
+                      { h: '別の道', lines: [{who: P_NG, say: '結果表なら「10,000 → 有料」の行がそのまま出ます。'}, {who: O_AB, say: 'これでいいのか、決めよう。', think: true}], caption: '推測が行として露出し、裁定される。' } ] } ] } ],
                 exit: '曖昧なスタートから、同一解釈者ムーブで緑に着地する(別々の読み違いなら赤)。一つのモデルが実装とテストを書くと、緑側に落ちる確率が最も高い。この緑は正オラクル行の盲点２位と同じ種類のもので、オーナーがたまたま見るまで続く。' }
             ]
         };
@@ -284,7 +318,7 @@
         }
         function lampEl(kind) { const l = document.createElement('span'); l.className = 'lamp ' + kind; return l; }
 
-        // 小さな SVG の人物。頭が色付きの丸(O / I / T)。CI はランプ、CUST はお客様。
+        // 小さな SVG の人物。頭: オラクルは四角(正=金、誤=さび、不在=点線)。P・T は丸(正=白、誤=黒)。CI はランプ、CUST はお客様。
         function figure(a, x) {
             const s = a.s;
             const F = 'font-family="Segoe UI, Meiryo, sans-serif"';
@@ -311,7 +345,6 @@
                     <line x1="20" y1="66" x2="29" y2="90" stroke="#495057" stroke-width="3" stroke-linecap="round"/>
                     <text x="20" y="102" text-anchor="middle" font-size="9" fill="#495057" ${F}>お客様</text></g>`;
             }
-            // 頭: オラクルは四角(正=金、誤=さび、不在=点線)。実装・テストは丸(正=白、誤=黒)。
             let head;
             if (a.r === 'O') {
                 head = s === 'absent'
@@ -324,24 +357,23 @@
                     ? `<circle cx="20" cy="22" r="13" fill="#000"/><text x="20" y="27" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" ${F}>${a.r}</text>`
                     : `<circle cx="20" cy="22" r="13" fill="#fff" stroke="#212529" stroke-width="2"/><text x="20" y="27" text-anchor="middle" font-size="13" font-weight="700" fill="#212529" ${F}>${a.r}</text>`;
             }
-            const arms = a.r === 'I' ? '<line x1="20" y1="44" x2="4" y2="50" stroke="#495057" stroke-width="3" stroke-linecap="round"/><line x1="20" y1="44" x2="36" y2="50" stroke="#495057" stroke-width="3" stroke-linecap="round"/><rect x="0" y="50" width="40" height="6" rx="1" fill="#adb5bd"/>'
+            const arms = a.r === 'P' ? '<line x1="20" y1="44" x2="4" y2="50" stroke="#495057" stroke-width="3" stroke-linecap="round"/><line x1="20" y1="44" x2="36" y2="50" stroke="#495057" stroke-width="3" stroke-linecap="round"/><rect x="0" y="50" width="40" height="6" rx="1" fill="#adb5bd"/>'
                        : a.r === 'T' ? '<line x1="20" y1="44" x2="8" y2="58" stroke="#495057" stroke-width="3" stroke-linecap="round"/><line x1="20" y1="44" x2="34" y2="40" stroke="#495057" stroke-width="3" stroke-linecap="round"/><path d="M32 36 l4 5 l7 -9" stroke="#495057" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
                        : '<line x1="20" y1="44" x2="6" y2="58" stroke="#495057" stroke-width="3" stroke-linecap="round"/><line x1="20" y1="44" x2="36" y2="36" stroke="#495057" stroke-width="3" stroke-linecap="round"/>';
-            const role = a.r === 'O' ? 'オーナー' : a.r === 'I' ? '開発者' : 'テスター';
+            const role = a.r === 'O' ? 'オーナー' : a.r === 'P' ? '開発者' : 'テスター';
             return `<g transform="translate(${x},0)">${head}
                 <line x1="20" y1="35" x2="20" y2="66" stroke="#495057" stroke-width="3" stroke-linecap="round"/>${arms}
                 <line x1="20" y1="66" x2="11" y2="90" stroke="#495057" stroke-width="3" stroke-linecap="round"/>
                 <line x1="20" y1="66" x2="29" y2="90" stroke="#495057" stroke-width="3" stroke-linecap="round"/>
                 <text x="20" y="102" text-anchor="middle" font-size="9" fill="#495057" ${F}>${role}</text></g>`;
         }
-        function stageSvg(who) {
-            const w = who.length * 46 + 4;
+        function figureSvg(a) {
             const defs = '<defs>'
                 + '<linearGradient id="mixed" x1="0" x2="1"><stop offset="0.5" stop-color="#40c057"/><stop offset="0.5" stop-color="#e03131"/></linearGradient>'
                 + '<linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset="0.4" stop-color="#f6c81c"/><stop offset="0.75" stop-color="#c9960c"/><stop offset="1" stop-color="#f2d57a"/></linearGradient>'
                 + '<radialGradient id="rust" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#c8763a"/><stop offset="0.45" stop-color="#9a4f1f"/><stop offset="1" stop-color="#5e3014"/></radialGradient>'
                 + '</defs>';
-            return `<svg viewBox="0 0 ${w} 106" width="${w}" height="106" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${defs}${who.map((a, i) => figure(a, 4 + i * 46)).join('')}</svg>`;
+            return `<svg viewBox="0 0 48 106" width="48" height="106" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${defs}${figure(a, 4)}</svg>`;
         }
 
         // ---------- 表 ----------
@@ -361,7 +393,7 @@
             quad.appendChild(corner);
             COLS.forEach(c => {
                 const h = document.createElement('div'); h.className = 'hd'; h.setAttribute('role', 'columnheader');
-                const d = document.createElement('div'); d.className = 'dots'; d.appendChild(dot('I', c.i)); d.appendChild(dot('T', c.t));
+                const d = document.createElement('div'); d.className = 'dots'; d.appendChild(dot('P', c.p)); d.appendChild(dot('T', c.t));
                 h.appendChild(d); h.appendChild(document.createTextNode(c.label));
                 quad.appendChild(h);
             });
@@ -378,16 +410,16 @@
                         const u = document.createElement('div');
                         u.className = 'cell unthinkable'; u.setAttribute('role', 'gridcell');
                         u.setAttribute('aria-label', r.label + '、' + c.label + ': unthinkable');
-                        u.title = 'オラクルが無いので、実装とテストのどちらが正でどちらが誤かは決められない。';
+                        u.title = 'オラクルが無いので、プロダクションとテストのどちらが正でどちらが誤かは決められない。';
                         u.textContent = 'unthinkable';
                         quad.appendChild(u);
                         return;
                     }
                     const b = document.createElement('button');
-                    b.type = 'button'; b.className = 'cell' + (sc.blind ? ' blind' : ''); b.setAttribute('role', 'gridcell');
+                    b.type = 'button'; b.className = 'cell'; b.setAttribute('role', 'gridcell');
                     b.setAttribute('aria-label', r.label + '、' + c.label + ': ' + (sc.name || sc.tag));
                     const d = document.createElement('div'); d.className = 'dots';
-                    d.appendChild(dot('O', r.o)); d.appendChild(dot('I', c.i)); d.appendChild(dot('T', c.t));
+                    d.appendChild(dot('O', r.o)); d.appendChild(dot('P', c.p)); d.appendChild(dot('T', c.t));
                     b.appendChild(d);
                     const sg = document.createElement('span'); sg.className = 'signal';
                     sg.appendChild(lampEl(sc.lamp)); sg.appendChild(document.createTextNode(sc.lamp === 'mixed' ? '緑 / 赤' : sc.lamp === 'green' ? '緑' : '赤'));
@@ -416,6 +448,23 @@
         });
 
         // ---------- マンガ ----------
+        function renderPanel(p, numberText) {
+            const el = document.createElement('div'); el.className = 'panel';
+            const n = document.createElement('div'); n.className = 'num'; n.textContent = numberText + ' · ' + p.h; el.appendChild(n);
+            p.lines.forEach(l => {
+                const row = document.createElement('div'); row.className = 'line';
+                const st = document.createElement('div'); st.className = 'stage'; st.innerHTML = figureSvg(l.who); row.appendChild(st);
+                const bb = document.createElement('div'); bb.className = 'bubble' + (l.think ? ' think' : ''); bb.textContent = l.say; row.appendChild(bb);
+                el.appendChild(row);
+            });
+            if (p.caption) { const cp = document.createElement('div'); cp.className = 'caption'; cp.textContent = p.caption; el.appendChild(cp); }
+            return el;
+        }
+
+        function countPanels(panels) {
+            return panels.reduce((n, p) => n + (p.split ? Math.max(...p.split.map(b => b.panels.length)) : 1), 0);
+        }
+
         function show(ri, ci) {
             const sc = SCENES[ri][ci];
             if (!sc) return;
@@ -423,19 +472,31 @@
             cells.forEach(b => b.classList.toggle('active', Number(b.dataset.ri) === ri && Number(b.dataset.ci) === ci));
             const r = ROWS[ri], c = COLS[ci];
             const dd = document.getElementById('comic-dots'); dd.replaceChildren();
-            dd.appendChild(dot('O', r.o)); dd.appendChild(dot('I', c.i)); dd.appendChild(dot('T', c.t));
+            dd.appendChild(dot('O', r.o)); dd.appendChild(dot('P', c.p)); dd.appendChild(dot('T', c.t));
             document.getElementById('comic-title').textContent = sc.name || sc.tag;
-            document.getElementById('comic-sub').textContent = r.label + ' · ' + c.label + '(' + sc.panels.length + 'コマ)';
+            document.getElementById('comic-sub').textContent = r.label + ' · ' + c.label + '(' + countPanels(sc.panels) + 'コマ)';
             const ps = document.getElementById('panels'); ps.replaceChildren();
-            sc.panels.forEach((p, i) => {
-                const el = document.createElement('div'); el.className = 'panel';
-                const st = document.createElement('div'); st.className = 'stage'; st.innerHTML = stageSvg(p.who); el.appendChild(st);
-                const tx = document.createElement('div'); tx.className = 'text';
-                const n = document.createElement('div'); n.className = 'num'; n.textContent = (i + 1) + ' · ' + p.h; tx.appendChild(n);
-                const bb = document.createElement('div'); bb.className = 'bubble' + (p.think ? ' think' : ''); bb.textContent = p.bubble; tx.appendChild(bb);
-                const cp = document.createElement('div'); cp.className = 'caption'; cp.textContent = p.caption; tx.appendChild(cp);
-                el.appendChild(tx);
-                ps.appendChild(el);
+            let no = 0;
+            sc.panels.forEach(p => {
+                if (p.split) {
+                    // ここから左右に分裂: 各列は同じコマ番号から数える
+                    const start = no;
+                    const wrap = document.createElement('div'); wrap.className = 'split';
+                    let maxLen = 0;
+                    p.split.forEach(br => {
+                        const col = document.createElement('div'); col.className = 'branch';
+                        const hd = document.createElement('div'); hd.className = 'branch-head';
+                        hd.appendChild(lampEl(br.lamp)); hd.appendChild(document.createTextNode(br.title)); col.appendChild(hd);
+                        br.panels.forEach((q, k) => col.appendChild(renderPanel(q, String(start + k + 1))));
+                        maxLen = Math.max(maxLen, br.panels.length);
+                        wrap.appendChild(col);
+                    });
+                    ps.appendChild(wrap);
+                    no = start + maxLen;
+                } else {
+                    no++;
+                    ps.appendChild(renderPanel(p, String(no)));
+                }
             });
             document.getElementById('comic-exit').textContent = sc.exit;
             document.getElementById('comic').scrollTop = 0;
