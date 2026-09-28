@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>テストの象限 — human sandbox</title>
-    <meta name="description" content="テストの象限。オラクル・プロダクション・テストのそれぞれが正か誤か(オラクルは不在もあり得る)で分け、各象限で緑や赤のランプが本当は何を意味するかを示す。象限にマウスを乗せると、その象限の業務シーンがマンガで出る。">
+    <meta name="description" content="テストの象限。オラクル・プロダクション・テストのそれぞれが正か誤か(オラクルは不在もあり得る)で分け、各象限で緑や赤のランプが本当は何を意味するかを示す。象限をクリックすると、その象限の業務シーンがマンガで出る。">
     <link rel="stylesheet" href="css/site.css">
     <style>
         :root {
@@ -85,10 +85,15 @@
         .line { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 8px; align-items: center; margin: 2px 0; }
         .line .stage { display: flex; justify-content: center; }
         .line .stage svg { height: 76px; width: auto; display: block; }
+        .line .say { min-width: 0; }
         .bubble { position: relative; background: #fff; border: 1.5px solid #212529; border-radius: 10px; padding: 6px 9px; font-size: 0.84rem; line-height: 1.45; }
         .bubble::before { content: ""; position: absolute; left: -9px; top: 12px; border: 6px solid transparent; border-right-color: #212529; border-left: 0; }
         .bubble::after { content: ""; position: absolute; left: -6px; top: 13px; border: 5px solid transparent; border-right-color: #fff; border-left: 0; }
         .bubble.think { border-style: dashed; }
+        /* 発言の上のラベル: good=薄ピンク・赤文字、bad=ばいきんまん色(紫地に黄文字) */
+        .chip { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 1px 7px; border-radius: 3px; margin: 0 0 3px 2px; letter-spacing: 0.02em; }
+        .chip.good { background: #ffe3e8; color: #c92a2a; border: 1px solid #f5b5c0; }
+        .chip.bad { background: #3b1d5e; color: #ffe600; border: 1px solid #1c0c33; }
         .caption { font-size: 0.78rem; color: #495057; line-height: 1.45; margin-top: 4px; }
         /* 途中から左右に分裂する(赤になる場合 / 緑になる場合) */
         .split { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
@@ -98,6 +103,7 @@
         .branch .line { grid-template-columns: 40px minmax(0, 1fr); gap: 5px; }
         .branch .line .stage svg { height: 58px; }
         .branch .bubble { font-size: 0.74rem; padding: 4px 6px; border-radius: 8px; }
+        .branch .chip { font-size: 0.64rem; padding: 1px 5px; }
         .branch .caption { font-size: 0.7rem; }
         .branch .num { font-size: 0.66rem; }
         .exit { font-size: 0.82rem; margin-top: 4px; padding: 6px 10px; background: #f1f3f5; border-left: 4px solid #212529; line-height: 1.5; }
@@ -127,7 +133,7 @@
             <div class="header-sub">
                 テストの結果が何を意味するかは、三者で決まる。<b>オラクル</b>(何が正しい答えかを言う人)、<b>プロダクション</b>(実装)、<b>テスト</b>。
                 それぞれが正か誤かで分けると 2×2×2 の 8 象限になる。オラクルには「不在(曖昧・未確定)」もあり得るとすれば 12 象限になる(表示オプション)。
-                象限にマウスを乗せる(タップする)と、右にその象限の業務シーンがマンガで出る。
+                象限をクリック(タップ)すると、右にその象限の業務シーンがマンガで出る。
             </div>
         </div>
 
@@ -153,7 +159,7 @@
                 <p class="header-sub" style="margin-top:10px">
                     プロダクションとテストの「正・誤」は<i>オラクルに忠実か</i>で読む。通常の議論は「正オラクル・誤実装・正テスト」の一象限だけを見て
                     「テストが欠陥を見つける」と語るが、それは象限の一つにすぎない。<b>誤オラクルの行の左端(盲点)が一番意識されない</b>。
-                    盲点の２位は「正オラクル・誤実装・誤テスト」。同一解釈者が同じ方向に誤ると緑のまま欠陥が残り、露出させるのはミューテーションか欠陥の注入だけである。
+                    盲点の２位は「正オラクル・誤実装・誤テスト」。同一解釈者が同じ方向に誤ると、欠陥にも関わらず緑になり、通常のテスト工程からは見えない。
                     <span id="absent-note" hidden>不在オラクルの行では、プロダクションとテストのどちらが正でどちらが誤かを決める参照点が無い。片方だけが正という中央の二つは考え得ない(unthinkable)。</span>
                 </p>
             </div>
@@ -175,6 +181,7 @@
                 通販サイトの送料ルール。シーンの中では、本当の業務ルールは<b>「10,000円以上で送料無料」</b>である。
                 オラクルはルールをチームに伝えるオーナー、プロダクションは開発者のコード、テストは 10,000 円ちょうどの注文に対する検証。
                 ランプは CI の結果。象限ごとに変わるのは、誰が間違っているかと、ランプがそれを教えてくれるかどうかである。
+                最後のコマのお客様が笑顔なら HAPPY、そうでなければ「さらに迷走へ」か「悪いまま」。
             </p>
             <p class="header-sub">
                 出典: StrictDev 用語集「テスト12象限」、GRAND INQ 27584・27576・27587。
@@ -200,17 +207,22 @@
         ];
 
         // 登場人物: O=オーナー(オラクル) P=開発者(プロダクション) T=テスター CI=ランプ CUST=お客様
-        // コマ: { h:見出し, lines:[{who:{r,s,label?}, say:'…', think?}], caption }
-        //   1行 = 話者1人 + その発言。話者が複数なら縦に並ぶ。
+        // コマ: { h:見出し, lines:[{who:{r,s}, say:'…', think?, label?}], caption }
+        //   1行 = 話者1人 + その発言。話者が複数なら縦に並ぶ。label は発言の上に出る印(GOOD=薄ピンク / HAPPY=薄ピンク / ASTRAY・STILL_BAD=ばいきんまん色)
         // 分裂: { split:[ {lamp:'red', title:'…', panels:[…]}, {lamp:'green', title:'…', panels:[…]} ] } — 左右2列になる
         const O_OK = {r:'O', s:'ok'}, O_NG = {r:'O', s:'ng'}, O_AB = {r:'O', s:'absent'};
         const P_OK = {r:'P', s:'ok'}, P_NG = {r:'P', s:'ng'}, T_OK = {r:'T', s:'ok'}, T_NG = {r:'T', s:'ng'};
-        const CI_G = {r:'CI', s:'green'}, CI_R = {r:'CI', s:'red'}, MUT = {r:'CI', s:'red', label:'変異'};
+        const CI_G = {r:'CI', s:'green'}, CI_R = {r:'CI', s:'red'};
         const CU_OK = {r:'CUST', s:'ok'}, CU_NG = {r:'CUST', s:'ng'};
+        const GOOD = {text: '良い気づきから良い方へ！', kind: 'good'};
+        const HAPPY = {text: 'HAPPY', kind: 'good'};
+        const ASTRAY = {text: 'さらに迷走へ', kind: 'bad'};
+        const STILL_BAD = {text: '悪いまま', kind: 'bad'};
 
         const RULE_OK     = { h: 'ルール', lines: [{who: O_OK, say: '10,000 円以上で送料無料です。'}], caption: 'ルールは正しく伝わっている。' };
         const RULE_WRONG  = { h: 'ルール', lines: [{who: O_NG, say: '合計が 10,000 円を超えたら送料無料です。'}], caption: 'オーナーの記憶違い。本当のルールは「10,000 円以上」。' };
         const RULE_ABSENT = { h: 'ルール', lines: [{who: O_AB, say: 'だいたい 1 万円を超えたら送料無料でいいよ。', think: true}], caption: '「超えたら」は 1 万円ちょうどを含むのか。オーナーはまだ決めていない。' };
+        const CHARGED = '10,000 円ちょうどなのに送料 500 円…';
 
         const SCENES_BY_KEY = {
             correct: [ // 正オラクル
@@ -218,21 +230,21 @@
                 panels: [
                   RULE_OK,
                   { h: '実装とテスト', lines: [{who: P_OK, say: 'total >= 10000 なら無料、と書いた。'}, {who: T_OK, say: '10,000 円は無料、9,999 円は有料、と確認する。'}], caption: 'どちらも忠実。' },
-                  { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_OK, say: '送料無料で届いた。'}], caption: '他の全ての象限が目指す場所。' } ],
+                  { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_OK, say: '送料無料で届いた。', label: HAPPY}], caption: '他の全ての象限が目指す場所。' } ],
                 exit: 'ORANGE の成立域(無反復有限分岐)では、結果表の導出でここへ直行する。プロダクションとテストの正誤が、コードから同時に固定される。' },
               { name: 'False Positive', lamp: 'red',
                 panels: [
                   RULE_OK,
                   { h: '実装とテスト', lines: [{who: P_OK, say: 'total >= 10000 なら無料、と書いた。'}, {who: T_NG, say: '10,000 円は有料、と書いてしまった(書き間違い)。'}], caption: 'コードは正しく、テストが誤り。' },
                   { h: '赤', lines: [{who: CI_R, say: '赤。'}, {who: P_OK, say: 'テストは仕様だ。コードを > に直そう…'}], caption: 'この象限が生む事故。直す側を間違える。' },
-                  { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_NG, say: '10,000 円なのに送料を取られた。'}], caption: '緑は回復したが、製品は悪くなった。' } ],
+                  { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_NG, say: CHARGED, label: ASTRAY}], caption: '緑は回復したが、正しかったコードが壊れた。' } ],
                 exit: '出口はテストの修正。危険なのは「テストが仕様である」と信じる規律。' },
               { name: 'True Positive(狙い通り)', lamp: 'red',
                 panels: [
                   RULE_OK,
                   { h: '実装とテスト', lines: [{who: P_NG, say: 'total > 10000 なら無料(境界を一つ間違えた)。'}, {who: T_OK, say: '10,000 円は無料、と確認する。'}], caption: 'コードが誤り、テストが正しい。' },
-                  { h: '赤', lines: [{who: CI_R, say: '赤。'}, {who: P_NG, say: '境界の間違いだ。>= に直す。'}], caption: 'テストが本来の職務を果たす。' },
-                  { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_OK, say: '送料無料で届いた。'}], caption: 'テストの教科書的な物語。' } ],
+                  { h: '赤', lines: [{who: CI_R, say: '赤。'}, {who: P_NG, say: '境界の間違いだ。>= に直す。', label: GOOD}], caption: 'テストが本来の職務を果たす。' },
+                  { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_OK, say: '送料無料で届いた。', label: HAPPY}], caption: 'テストの教科書的な物語。' } ],
                 exit: 'テストが本来の職務を果たす唯一の象限。8 つのうちの 1 つ(不在の行を含めても 12 のうちの 1 つ)にすぎない。' },
               { name: '', tag: '盲点２位！ もし緑(同一解釈者による)として出てしまったら', lamp: 'mixed',
                 panels: [
@@ -241,11 +253,9 @@
                   { split: [
                     { lamp: 'red', title: '別方向なら赤', panels: [
                       { h: '赤', lines: [{who: CI_R, say: '赤。'}, {who: T_NG, say: 'テストは 10,000 円が無料と言っている。'}, {who: P_NG, say: 'コードは有料にしている。'}], caption: '向きが違えば赤が立ち、どちらかが疑われる。' },
-                      { h: '結果', lines: [{who: P_OK, say: '見直して両方直した。'}, {who: CI_G, say: '緑。'}], caption: '赤が出れば気づける。' } ] },
+                      { h: '結果', lines: [{who: P_OK, say: '見直して両方直した。', label: GOOD}, {who: CI_G, say: '緑。'}, {who: CU_OK, say: '送料無料で届いた。', label: HAPPY}], caption: '赤が出れば気づける。' } ] },
                     { lamp: 'green', title: '同方向なら緑(同一解釈者)', panels: [
-                      { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_NG, say: '10,000 円なのに送料を取られた。'}], caption: '欠陥を隠す緑。誰も気づかない。' },
-                      { h: 'ミューテーション', lines: [{who: MUT, say: '> を >= に変えてもテストは緑のまま。生存ミュータント。'}], caption: '露出させるのはミューテーションか欠陥の注入だけ。' },
-                      { h: 'その後', lines: [{who: T_OK, say: '10,000 円ちょうどで書き直した。'}, {who: P_OK, say: '>= に直した。'}], caption: '露出して初めて直せる。' } ] } ] } ],
+                      { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_NG, say: CHARGED, label: STILL_BAD}], caption: '欠陥にも関わらず緑。誰も気づかない。' } ] } ] } ],
                 exit: '同方向の誤りは緑、別方向なら赤。緑のまま残る側が盲点２位で、通常のテスト工程からは見えない。' }
             ],
             wrong: [ // 誤オラクル
@@ -254,21 +264,21 @@
                   RULE_WRONG,
                   { h: '実装', lines: [{who: P_OK, say: 'total > 10000 なら無料、と書いた。'}], caption: '言われたとおりに書く。' },
                   { h: 'テスト', lines: [{who: T_OK, say: '10,000 円ちょうどは送料がかかる、と確認する。'}], caption: 'こちらも言われたとおり。' },
-                  { h: '結果', lines: [{who: CI_G, say: '全部緑。'}, {who: CU_NG, say: '10,000 円ちょうどなのに送料 500 円…'}], caption: '誰も気づかない。誤りは仕様ごと固定される。テストを増やしても、実装を直しても、出てこない。' } ],
+                  { h: '結果', lines: [{who: CI_G, say: '全部緑。'}, {who: CU_NG, say: CHARGED, label: STILL_BAD}], caption: '誰も気づかない。誤りは仕様ごと固定される。テストを増やしても、実装を直しても、出てこない。' } ],
                 exit: '出口はオラクルとの対話だけ。期待値を直すと「正オラクル・正実装・正テスト」へ移る。この遷移はテスト工程の外で起きる。だから一番意識されない。' },
               { name: '赤がテストの誤りにされる', lamp: 'red',
                 panels: [
                   RULE_WRONG,
                   { h: '実装とテスト', lines: [{who: P_OK, say: 'total > 10000 なら無料、と書いた。'}, {who: T_NG, say: '10,000 円ちょうどは無料、と書く(現場の運用を覚えている)。'}], caption: 'オラクル基準では「誤テスト」。' },
                   { h: '赤', lines: [{who: CI_R, say: '赤。'}, {who: O_NG, say: 'テストが仕様と違う。テストを直せ。'}], caption: '赤は本物の信号だが、参照点が誤っているので、テストの間違いとして処理される。' },
-                  { h: '結果', lines: [{who: T_OK, say: '10,000 円は有料、に書き直した。'}, {who: CI_G, say: '緑。'}], caption: 'バグは残る。一度出た正しい赤が、手続きで消される。' } ],
+                  { h: '結果', lines: [{who: T_OK, say: '10,000 円は有料、に書き直した。'}, {who: CI_G, say: '緑。'}, {who: CU_NG, say: CHARGED, label: ASTRAY}], caption: 'バグは残る。一度出た正しい赤が、手続きで消される。' } ],
                 exit: '出口はやはりオラクル。テストを「直す」前に、参照点を疑う必要がある。' },
               { name: '誤った答えへ直される', lamp: 'red',
                 panels: [
                   RULE_WRONG,
                   { h: '実装とテスト', lines: [{who: P_NG, say: 'total >= 10000 なら無料(店の運用を知っている)。'}, {who: T_OK, say: '10,000 円ちょうどは有料、と確認する。'}], caption: '実装は偶然、現実に合っている。テストはオラクルに忠実。' },
                   { h: '赤', lines: [{who: CI_R, say: '赤。'}, {who: P_NG, say: 'コードのバグか。>= を > に直す。'}], caption: 'テストは教科書どおりに働く。' },
-                  { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_NG, say: '10,000 円ちょうどなのに送料 500 円…'}], caption: '検出は機能し、コードを真実から遠ざけた。' } ],
+                  { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_NG, say: CHARGED, label: ASTRAY}], caption: '検出は機能し、コードを真実から遠ざけた。' } ],
                 exit: '検出と正しさは別のもの。テストが完璧に働いて、製品が悪くなる象限。' },
               { name: '雑音', lamp: 'mixed',
                 panels: [
@@ -276,9 +286,10 @@
                   { h: '実装とテスト', lines: [{who: P_NG, say: '記憶で書いた。'}, {who: T_NG, say: '記憶で書いた。'}], caption: '二人とも仕様からずれた。向きが違うか、同じか。' },
                   { split: [
                     { lamp: 'red', title: '別方向なら赤', panels: [
-                      { h: '結果', lines: [{who: CI_R, say: '赤。'}], caption: '参照点が誤っている以上、どちらを直すべきかは決められない。' } ] },
+                      { h: '赤', lines: [{who: CI_R, say: '赤。'}, {who: O_NG, say: '仕様に合わせて直せ。'}], caption: '参照点が誤っている以上、どちらを直しても正しくはならない。' },
+                      { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_NG, say: CHARGED, label: ASTRAY}], caption: '誤オラクルに合わせて直しただけ。' } ] },
                     { lamp: 'green', title: '同方向なら緑', panels: [
-                      { h: '結果', lines: [{who: CI_G, say: '緑。'}], caption: '同じ方向にずれただけ。この緑にも意味は無い。' } ] } ] } ],
+                      { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_NG, say: CHARGED, label: STILL_BAD}], caption: '同じ方向にずれただけ。この緑にも意味は無い。' } ] } ] } ],
                 exit: 'オラクルを直すまで、ここでは何も推論できない。' }
             ],
             absent: [ // 不在オラクル(表示オプション)
@@ -286,7 +297,7 @@
                 panels: [
                   RULE_ABSENT,
                   { h: '実装とテスト', lines: [{who: P_OK, say: 'total >= 10000 と読んだ。'}, {who: T_OK, say: '10,000 円は無料、と読んだ。'}], caption: '二人とも同じ読みを選んだ。' },
-                  { h: '結果', lines: [{who: CI_G, say: '緑。'}], caption: '二人の読みが一致しただけで、どちらが正しいかは分からない。同じ訓練分布、同じ推測。' } ],
+                  { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_OK, say: '送料無料で届いた。', label: HAPPY}], caption: 'お客様は喜んでいるが、それが正しいルールかは誰も決めていない。二人の読みが一致しただけ。同じ訓練分布、同じ推測。' } ],
                 exit: '「独立したテスター」の実験が測っているのはこの緑。解釈の一致であって、正しさの証拠ではない。' },
               null,
               null,
@@ -296,11 +307,11 @@
                   { h: '同一解釈者ムーブ', lines: [{who: P_NG, say: '一つのモデルがコードを書く。> 10000 と読んだ。'}, {who: T_NG, say: '同じモデルがテストも書く。同じく > 10000。'}], caption: '同じ書き手、同じ読み。曖昧さは決着せず、一つの読みに畳まれる。' },
                   { split: [
                     { lamp: 'red', title: '別々の読み違いなら赤', panels: [
-                      { h: '赤', lines: [{who: CI_R, say: '赤。'}, {who: O_AB, say: 'どっちが正しいの? 決めてなかった…', think: true}], caption: '赤は欠陥ではなく、曖昧さの露出。オーナーへの質問になる。' } ] },
+                      { h: '赤', lines: [{who: CI_R, say: '赤。'}, {who: O_AB, say: 'どっちが正しいの? 決めてなかった…', think: true}], caption: '赤は欠陥ではなく、曖昧さの露出。オーナーへの質問になる。' },
+                      { h: '結果', lines: [{who: O_OK, say: '10,000 円ちょうども無料にする、と決めた。', label: GOOD}, {who: CU_OK, say: '送料無料で届いた。', label: HAPPY}], caption: '決まった時点で、正オラクルの行に入る。' } ] },
                     { lamp: 'green', title: '同一解釈者なら緑', panels: [
-                      { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_NG, say: '1 万円ちょうどなのに送料…'}], caption: '誰も聞かなかった。推測がコードとテストの両方に焼き込まれる。' },
-                      { h: '別の道', lines: [{who: P_NG, say: '結果表なら「10,000 → 有料」の行がそのまま出ます。'}, {who: O_AB, say: 'これでいいのか、決めよう。', think: true}], caption: '推測が行として露出し、裁定される。' } ] } ] } ],
-                exit: '曖昧なスタートから、同一解釈者ムーブで緑に着地する(別々の読み違いなら赤)。一つのモデルが実装とテストを書くと、緑側に落ちる確率が最も高い。この緑は正オラクル行の盲点２位と同じ種類のもので、オーナーがたまたま見るまで続く。' }
+                      { h: '結果', lines: [{who: CI_G, say: '緑。'}, {who: CU_NG, say: '1 万円ちょうどなのに送料…', label: STILL_BAD}], caption: '誰も聞かなかった。推測がコードとテストの両方に焼き込まれる。' } ] } ] } ],
+                exit: '曖昧なスタートから、同一解釈者ムーブで緑に着地する(別々の読み違いなら赤)。一つのモデルが実装とテストを書くと、緑側に落ちる確率が最も高い。結果表なら「10,000 → 有料」の行がそのまま出て、オーナーに「これでいいか」と聞ける。推測が行として露出し、裁定される。' }
             ]
         };
         // 行の並びは ROWS が決める。シーンは行のキーで引く。
@@ -427,8 +438,7 @@
                     if (sc.name) { const nm = document.createElement('div'); nm.className = 'name'; nm.textContent = sc.name; b.appendChild(nm); }
                     if (sc.tag) { const t = document.createElement('span'); t.className = 'tag'; t.textContent = sc.tag; b.appendChild(t); }
                     b.dataset.ri = ri; b.dataset.ci = ci;
-                    b.addEventListener('mouseenter', () => show(ri, ci));
-                    b.addEventListener('focus', () => show(ri, ci));
+                    // クリック(タップ・キーボードの Enter/Space)で切り替える。ホバーでは切り替えない。
                     b.addEventListener('click', () => show(ri, ci));
                     quad.appendChild(b);
                     cells.push(b);
@@ -454,7 +464,10 @@
             p.lines.forEach(l => {
                 const row = document.createElement('div'); row.className = 'line';
                 const st = document.createElement('div'); st.className = 'stage'; st.innerHTML = figureSvg(l.who); row.appendChild(st);
-                const bb = document.createElement('div'); bb.className = 'bubble' + (l.think ? ' think' : ''); bb.textContent = l.say; row.appendChild(bb);
+                const say = document.createElement('div'); say.className = 'say';
+                if (l.label) { const ch = document.createElement('span'); ch.className = 'chip ' + l.label.kind; ch.textContent = l.label.text; say.appendChild(ch); }
+                const bb = document.createElement('div'); bb.className = 'bubble' + (l.think ? ' think' : ''); bb.textContent = l.say; say.appendChild(bb);
+                row.appendChild(say);
                 el.appendChild(row);
             });
             if (p.caption) { const cp = document.createElement('div'); cp.className = 'caption'; cp.textContent = p.caption; el.appendChild(cp); }
