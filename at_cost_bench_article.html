@@ -112,15 +112,17 @@
                         <tr><td>SEQ 21</td><td class="num">104,979</td><td class="num">5,250</td><td class="num">&times;20.0</td><td class="num">358 s</td><td class="num">48 s</td><td class="num">94.7 / 92.3%</td><td class="num">92.1 / 91.4%</td></tr>
                         <tr><td>SEQ 22</td><td class="num">76,919</td><td class="num">5,061</td><td class="num">&times;15.2</td><td class="num">171 s</td><td class="num">43 s</td><td class="num">100 / 100%</td><td class="num">97.1 / 97.1%</td></tr>
                         <tr><td>SEQ 23</td><td class="num">372,270</td><td class="num">23,875</td><td class="num">&times;15.6</td><td class="num">952 s</td><td class="num">123 s</td><td class="num">99.3 / 100%</td><td class="num">95.4 / 90.4%</td></tr>
-                        <tr><td>SEQ 26</td><td class="num">173,569</td><td class="num">7,853</td><td class="num">&times;22.1</td><td class="num">456 s</td><td class="num">65 s</td><td class="num">100 / 100%</td><td class="num">98.5 / 97.5%</td></tr>
-                        <tr><td>SEQ 27</td><td class="num">194,107</td><td class="num">7,377</td><td class="num">&times;26.3</td><td class="num">494 s</td><td class="num">51 s</td><td class="num">100 / 100%</td><td class="num">96.0 / 97.7%</td></tr>
+                        <tr><td>SEQ 26 &#8224;</td><td class="num">173,569</td><td class="num">7,853</td><td class="num">&times;22.1</td><td class="num">456 s</td><td class="num">65 s</td><td class="num">100 / 100%</td><td class="num">98.5 / 97.5%</td></tr>
+                        <tr><td>SEQ 27 &#8224;</td><td class="num">194,107</td><td class="num">7,377</td><td class="num">&times;26.3</td><td class="num">494 s</td><td class="num">51 s</td><td class="num">100 / 100%</td><td class="num">96.0 / 97.7%</td></tr>
                         <tr><th>Total</th><th class="num">1,087,509</th><th class="num">61,532</th><th class="num">&times;17.7</th><th class="num">2,850 s</th><th class="num">430 s</th><th class="num">&#8212;</th><th class="num">&#8212;</th></tr>
                     </tbody>
                 </table>
             </div>
             <div class="caption">
                 Effective tokens and wall-clock time per run; coverage is C1 line coverage, mutation is the Stryker mutation score.
-                Every run succeeded in both arms. The per-run ratio ranges from &times;10.8 to &times;26.3 (median &times;17.6).
+                Both arms finished every run. &#8224; In two runs the RGR arm abandoned one member of the task and the run is
+                recorded as it happened: SEQ 26 lost one of four members to the per-cycle token budget, SEQ 27 one of five to a
+                malformed response. The per-run ratio ranges from &times;10.8 to &times;26.3 (median &times;17.6).
             </div>
             <p>
                 The direction never flips. In every one of the eight runs, Direct-to-GREEN finished with a small fraction of the tokens and
@@ -151,12 +153,21 @@
                 and the two arms tied in two. Neither arm is consistently stronger, and the differences are far smaller than the
                 tenfold-plus difference in cost.
             </p>
+            <p>
+                Two of those eight comparisons are not like-for-like. In SEQ 26 and SEQ 27 the RGR arm dropped one member, so its
+                mutation score is computed over a different set of methods than Direct's (in SEQ 26, 79 mutants against 92).
+                Counting only the six runs where both arms completed every member, RGR scored higher in three, Direct in one,
+                and they tied in two &#8212; the same picture.
+            </p>
 
             <h2>What this does and does not show</h2>
             <ul>
                 <li>It measures the <b>cost of the red&#8594;green loop when the implementer is an LLM agent</b> and the verification bar is
                     fixed in advance. It says nothing about TDD as a thinking tool for human programmers.</li>
                 <li>The sample is small: eight runs, one model, small C# business-logic tasks, with specifications written in Japanese.</li>
+                <li>In two runs (SEQ 26 and SEQ 27) the RGR arm abandoned one member of the task. Those runs are reported as they
+                    happened, not corrected: the RGR cost there is a <b>lower bound</b> (the cost of finishing the abandoned member is
+                    not included), and the two arms' mutation scores cover different sets of methods.</li>
                 <li>The RGR arm ran under a variant that is already favorable to it (no nano-cycle). A stricter reading of the
                     discipline would add cycles, not remove them.</li>
                 <li>The quality bar here is coverage plus mutation score. Other properties &#8212; design, readability, how the code
