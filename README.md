@@ -4,6 +4,7 @@ Measured economics of AI-agent software testing — a primary-evidence archive (
 
 - `index.html` — landing page and site map (English)
 - `at_cost_bench.html` — AT COST BENCH: viewer over measured A/B runs (RGR branch-grained vs Direct-to-GREEN)
+- `at_cost_bench_article.html` — the same argument as an English article (figures from the bundled snapshot)
 - `data/cost_data.js` — static snapshot of the evidence records (`window.COST_DATA`); regenerate from the
   evidence database when new runs land
 - `css/site.css` — shared styles (StrictDev-derived base colors)
